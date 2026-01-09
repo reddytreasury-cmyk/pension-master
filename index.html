@@ -1,0 +1,2500 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pension Master V48 (Final Proceedings Update)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
+    <script>
+        document.addEventListener('contextmenu', e => { if(!e.altKey) { e.preventDefault(); return false; } });
+        document.onkeydown = e => { if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && 'IJC'.includes(String.fromCharCode(e.keyCode))) || (e.ctrlKey && e.keyCode==85)) return false; };
+    </script>
+
+    <style>
+        /* BASE FONTS */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1e3a8a, #3b82f6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .tab-button { transition: all 0.3s; border-radius: 6px; }
+        .tab-button:hover { background-color: rgba(0,0,0,0.05); }
+        .tab-button.active { background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); }
+        
+        /* Part Specific Active Colors */
+        .part1-btn.active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 700; }
+        .part2-btn.active { border-bottom: 3px solid #9333ea; color: #9333ea; font-weight: 700; }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        #autocomplete-list { position: absolute; width: 100%; border: 1px solid #d1d5db; background: white; z-index: 50; max-height: 250px; overflow-y: auto; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .autocomplete-item:hover { background-color: #eff6ff; }
+
+        /* --- STYLES --- */
+        .payslip-container { max-width: 800px; margin: 20px auto; background: white; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e5e7eb; }
+        .payslip-header { text-align: center; color: #1e3a8a; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
+
+        .comp-container { max-width: 210mm; margin: 0 auto; background: white; padding: 20px; border: 1px solid #e2e8f0; }
+        .comp-header-box { border: 2px solid #94a3b8; padding: 15px; margin-bottom: 15px; text-align: center; background: #f8fafc; }
+        .comp-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .comp-table th { background-color: #e2e8f0; color: #1e293b; border: 1px solid #94a3b8; padding: 8px; text-align: center; font-weight: bold; text-transform: uppercase; }
+        .comp-table td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: right; color: #334155; }
+        .comp-table td:first-child { text-align: left; font-weight: 600; color: #0f172a; background-color: #f8fafc; }
+        .diff-pos { color: #16a34a; font-weight: bold; }
+        .diff-neg { color: #dc2626; font-weight: bold; }
+        .diff-neutral { color: #94a3b8; font-size: 0.8em; }
+
+        .lta-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 11pt; }
+        .lta-table th, .lta-table td { border: 1px solid black; padding: 5px; }
+        .lta-header { background-color: #f3f4f6; font-weight: bold; }
+        
+        .var-table { width: 100%; border-collapse: collapse; background: white; font-size: 11px; table-layout: fixed; }
+        .var-table th { background-color: #f1f5f9; color: #334155; font-weight: bold; padding: 5px; border: 1px solid #cbd5e1; text-align: center; height: 40px; }
+        .var-table td { border: 1px solid #cbd5e1; padding: 0; height: 45px; vertical-align: middle; }
+        .cell-inner { display: flex; flex-direction: column; justify-content: center; height: 100%; padding: 4px 6px; text-align: right; width: 100%; }
+        .sticky-col { position: sticky; left: 0; background-color: white; z-index: 20; border-right: 2px solid #64748b !important; }
+        .audit-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .audit-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; }
+        .bg-up { background-color: #dcfce7 !important; } .bg-down { background-color: #fee2e2 !important; }
+        .v-curr { font-weight: bold; font-size: 12px; color: #000; } .v-prev { font-size: 10px; color: #64748b; } .v-diff { font-weight: bold; font-size: 10px; margin-top: 1px; }
+        .st-new { color: #15803d; background: #dcfce7; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #86efac; }
+        .st-stop { color: #b91c1c; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #fca5a5; }
+        .st-mod { color: #ffffff; background: #1e3a8a; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #1e40af; }
+        
+        /* New Styles for Proceedings */
+        .indent-para { text-indent: 50px; }
+        .ref-list { list-style-type: none; counter-reset: ref-counter; padding-left: 0; }
+        .ref-list li { position: relative; padding-left: 25px; margin-bottom: 5px; }
+        .ref-list li::before { content: counter(ref-counter) "."; counter-increment: ref-counter; position: absolute; left: 0; font-weight: bold; }
+
+        #remarks-menu, #type-menu { display: none; position: absolute; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-radius: 6px; z-index: 100; width: 220px; }
+        #remarks-menu div, #type-menu div { padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #output-area, #output-area * { visibility: visible; }
+            #output-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+            @page { size: landscape; margin: 5mm; }
+            .report-print-mode { width: 100%; }
+            .comp-container { border: none; padding: 0; width: 100%; max-width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .comp-header-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; border: 2px solid #94a3b8 !important; }
+            .comp-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; border: 1px solid #94a3b8 !important; }
+            .comp-table td { border: 1px solid #cbd5e1 !important; }
+            .payslip-container { box-shadow: none; border: 1px solid #ccc; width: 100%; margin: 0; }
+        }
+/* History Card Styles */
+.hist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+.hist-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden; }
+.hist-head { background: #f8fafc; padding: 8px 12px; font-weight: bold; font-size: 13px; color: #334155; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+.hist-body { max-height: 250px; overflow-y: auto; padding: 0; }
+.hist-row { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-date { color: #64748b; font-weight: 600; width: 80px; }
+.hist-val { font-weight: bold; color: #0f172a; flex-grow: 1; text-align: right; }
+.hist-diff { font-size: 10px; padding: 1px 4px; border-radius: 3px; margin-left: 6px; display: inline-block; min-width: 40px; text-align: center; }
+.diff-plus { background: #dcfce7; color: #166534; }
+.diff-minus { background: #fee2e2; color: #991b1b; }
+.badge-count { background: #e2e8f0; color: #475569; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800" onclick="closeMenus(event)">
+<div id="login-screen">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl text-center w-96 border-4 border-blue-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Login</h2>
+            <input type="password" id="password-input" placeholder="Password: 12345" class="w-full p-3 border rounded-lg mb-4 text-center">
+            <button onclick="checkPassword()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Login</button>
+        </div>
+    </div>
+
+    <div id="edit-modal" style="display: none;">
+        <div class="bg-white rounded-lg shadow-2xl w-11/12 md:w-1/2 p-6">
+            <h3 class="text-xl font-bold text-blue-800 mb-2 border-b pb-2">Confirm / Edit Rates for LTA</h3>
+            <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                <div><label>Basic Pay</label><input type="number" id="edit-basic" class="w-full border p-1 rounded font-bold"></div>
+                <div><label>DR</label><input type="number" id="edit-da" class="w-full border p-1 rounded font-bold"></div>
+                <div><label>IR</label><input type="number" id="edit-ir" class="w-full border p-1 rounded"></div>
+                <div><label>Medical</label><input type="number" id="edit-med" class="w-full border p-1 rounded"></div>
+                <div><label>AQ</label><input type="number" id="edit-aq" class="w-full border p-1 rounded font-bold"></div>
+                <div><label>Police Seva</label><input type="number" id="edit-pol" class="w-full border p-1 rounded"></div>
+                <div><label>Arrears</label><input type="number" id="edit-arr" class="w-full border p-1 rounded font-bold bg-blue-50"></div>
+                <div class="col-span-2 bg-red-50 p-2 rounded border border-red-200"><label class="text-red-700 font-bold">Commutation (CVP)</label><input type="number" id="edit-com" class="w-full border p-1 rounded font-bold text-red-700"></div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeEditModal()" class="px-4 py-2 bg-gray-300 rounded font-bold">Cancel</button>
+                <button onclick="confirmLTAData()" class="px-4 py-2 bg-green-600 text-white rounded font-bold">Confirm & Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden min-h-screen p-2 md:p-6">
+        <div class="max-w-[98%] mx-auto bg-white rounded-xl shadow-xl border border-gray-200">
+            <div class="bg-white p-6 border-b flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-100 p-2 rounded text-blue-800"><i class="fas fa-calculator text-2xl"></i></div>
+                    <div><h1 class="text-2xl font-bold text-gray-800">Pension Master <span class="text-sm bg-gray-200 text-gray-700 px-2 rounded ml-2">V48</span></h1><p class="text-gray-500 text-xs">Official Wording Update • PPO Verification</p></div>
+                </div>
+                <div class="flex gap-2">
+                     <button onclick="backupData()" class="text-xs bg-green-500 text-white px-3 py-2 rounded">Backup</button>
+                     <button onclick="document.getElementById('restore-input').click()" class="text-xs bg-purple-500 text-white px-3 py-2 rounded">Restore</button>
+                     <input type="file" id="restore-input" accept=".json" class="hidden" onchange="restoreData(this)">
+                     <button onclick="clearDatabase()" class="text-xs bg-red-500 text-white px-3 py-2 rounded">Clear</button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div class="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-400 mb-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700">Import Data</h3>
+                        <div id="db-status" class="text-xs font-bold text-blue-800">Checking DB...</div>
+                    </div>
+                    <div class="flex gap-4 items-center mt-2">
+                        <div class="flex gap-2 text-xs"><label><input type="radio" name="upload-type" value="file" checked onclick="toggleUploadMode()"> Files</label><label><input type="radio" name="upload-type" value="folder" onclick="toggleUploadMode()"> Folder</label></div>
+                        <input type="file" id="file-input" multiple accept=".csv,.xlsx,.xls" class="w-full text-sm border p-1 bg-white rounded">
+                    </div>
+                    <div id="loading-bar" class="hidden mt-2 h-1 bg-blue-600 rounded"></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-blue-100 p-3 border-b border-blue-200 flex items-center justify-between">
+                            <h2 class="font-bold text-blue-900"><i class="fas fa-user mr-2"></i> PART-I: INDIVIDUAL SERVICES</h2>
+                        </div>
+                        <div class="p-4">
+                            <div class="relative mb-4">
+                                <label class="text-xs font-bold text-blue-800 uppercase block mb-1">Search Pensioner</label>
+                                <input type="text" id="cfms-input" autocomplete="off" placeholder="Enter CFMS ID, Name or PPO..." class="w-full p-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 uppercase font-bold text-blue-900 bg-white">
+                                <div id="autocomplete-list" class="hidden"></div>
+                            </div>
+                            
+                            <div id="pensioner-info" class="hidden mb-4 p-3 bg-white rounded border border-blue-200 shadow-inner">
+                                <p id="pensioner-name" class="text-blue-900 font-bold text-lg"></p>
+                                <p id="payscale-display" class="text-xs font-bold text-gray-500 uppercase mb-2"></p>
+                                <div id="data-range-display" class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded"></div>
+                            </div>
+
+                            <div id="part1-nav" class="flex flex-wrap gap-2 mb-4 bg-white p-2 rounded border border-blue-100">
+                                <button id="tab1-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab1')">Pay Slip</button>
+                                <button id="tab3-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab3')">Compare</button>
+                                <button id="tab2-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab2')">Report</button>
+                                <button id="tab4-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab4')">LTA/Funeral</button>
+                                <button id="tab10-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab10')">Family Pension</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden shadow-sm">
+                         <div class="bg-purple-100 p-3 border-b border-purple-200 flex items-center justify-between">
+                            <h2 class="font-bold text-purple-900"><i class="fas fa-building mr-2"></i> PART-II: OFFICE ADMIN</h2>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-xs text-purple-800 mb-4 bg-white p-2 rounded border border-purple-100">Tools for bulk data analysis, monthly bills, and abstract reports. No individual selection required.</p>
+                            
+                            <div id="part2-nav" class="flex flex-col gap-3">
+                                <button id="tab5-btn" class="tab-button part2-btn w-full py-3 px-4 text-left font-bold text-sm bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 flex justify-between items-center" onclick="showTab('tab5')">
+                                    <span><i class="fas fa-search-dollar mr-2"></i> Variance Audit (Audit)</span> <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                                <button id="tab6-btn" class="tab-button part2-btn w-full py-3 px-4 text-left font-bold text-sm bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 flex justify-between items-center" onclick="showTab('tab6')">
+                                    <span><i class="fas fa-file-invoice-dollar mr-2"></i> Monthly Bill</span> <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                                <button id="tab7-btn" class="tab-button part2-btn w-full py-3 px-4 text-left font-bold text-sm bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 flex justify-between items-center" onclick="showTab('tab7')">
+                                    <span><i class="fas fa-table mr-2"></i> Abstract Report</span> <i class="fas fa-chevron-right text-xs"></i>
+                               <button id="tab8-btn" class="tab-button part2-btn w-full py-3 px-4 text-left font-bold text-sm bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 flex justify-between items-center" onclick="showTab('tab8')">
+    <span><i class="fas fa-chart-line mr-2"></i> AQ Analysis Report</span> <i class="fas fa-chevron-right text-xs"></i></button>
+<button id="tab9-btn" class="tab-button part1-btn flex-1 py-2 text-xs font-bold whitespace-nowrap bg-gray-50 text-gray-600 border border-gray-200" onclick="showTab('tab9'); generateMasterData()">changes over time</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-display-area" class="mt-6 bg-white rounded-xl shadow border p-4 min-h-[300px]">
+                    
+                    <div id="welcome-msg" class="text-center py-10 text-gray-400">
+                        <i class="fas fa-arrow-up text-4xl mb-4"></i>
+                        <p>Select an option from Part-I or Part-II to view details here.</p>
+                    </div>
+
+                    <div id="tab1-content" class="tab-pane">
+                        <div class="flex gap-4 p-4 bg-blue-50 rounded border border-blue-100"><input type="text" id="month-input" placeholder="MM/YYYY" maxlength="7" class="border p-2 rounded w-32 text-center font-bold"><button onclick="generatePayslip()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold shadow">Get Slip</button></div>
+                    </div>
+
+                    <div id="tab2-content" class="tab-pane">
+                        <div class="flex gap-4 p-4 bg-blue-50 rounded border border-blue-100"><input type="text" id="from-input" placeholder="MM/YYYY" class="border p-2 rounded w-32"><input type="text" id="to-input" placeholder="MM/YYYY" class="border p-2 rounded w-32"><button onclick="generateReport()" class="bg-slate-700 text-white px-6 py-2 rounded font-bold">Report (Landscape)</button></div>
+                    </div>
+
+                    <div id="tab3-content" class="tab-pane">
+                        <div class="flex gap-4 items-center p-4 bg-blue-50 rounded border border-blue-100">
+                            <div><label class="text-xs font-bold text-gray-500 block">PREVIOUS</label><input type="text" id="comp-m1" class="border p-2 rounded w-32 text-center font-bold" placeholder="MM/YYYY"></div>
+                            <div class="text-gray-400 font-bold">VS</div>
+                            <div><label class="text-xs font-bold text-gray-500 block">CURRENT</label><input type="text" id="comp-m2" class="border p-2 rounded w-32 text-center font-bold" placeholder="MM/YYYY"></div>
+                            <button onclick="generateComparison()" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold shadow ml-4">Compare</button>
+                        </div>
+                    </div>
+
+                    <div id="tab4-content" class="tab-pane">
+                         <div class="bg-blue-50 p-4 rounded border border-blue-100">
+                             <select id="proc-select" class="border p-2 rounded font-bold mb-4" onchange="toggleProcInputs()"><option value="funeral">Funeral charges</option><option value="lta">LTA</option></select>
+                             <div id="lta-ui-container" class="grid grid-cols-2 gap-4">
+                                 <input type="date" id="proc-date" class="border p-2 rounded" onchange="checkStatus()">
+                                 <input type="text" id="proc-heir" placeholder="Heir Name" class="border p-2 rounded">
+                                 <input type="text" id="proc-relation" placeholder="Relation" class="border p-2 rounded">
+                                 <input type="text" id="proc-bank-acc" placeholder="Bank Acc" class="border p-2 rounded">
+                                 <div id="amount-input-div"><input type="number" id="proc-amount" value="25000" class="border p-2 rounded"></div>
+                                 <button onclick="initiateGeneration()" class="bg-green-600 text-white px-4 py-2 rounded font-bold">Generate</button>
+                             </div>
+                             <div id="excess-status-display" class="mt-2 hidden"></div>
+                             <div class="hidden"><span id="proc-name"></span><span id="proc-sto"></span><span id="proc-hoa"></span></div>
+                         </div>
+                    </div>
+
+                    <div id="tab5-content" class="tab-pane">
+                         <div class="flex gap-4 p-4 bg-purple-50 rounded border border-purple-100"><select id="var-m1" class="border p-2 rounded"></select><span>VS</span><select id="var-m2" class="border p-2 rounded"></select><button onclick="generateVarianceReport()" class="bg-amber-600 text-white px-4 py-2 rounded font-bold">Audit</button></div>
+                         <div id="audit-abstract" class="audit-box hidden mt-4"></div>
+                         <div id="var-output" class="mt-4 overflow-x-auto"></div>
+                         <div id="remarks-menu" style="display: none; position: absolute; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-radius: 6px; z-index: 100; width: 220px; max-height: 300px; overflow-y: auto;">
+                            <div onclick="applyRemFilter('ALL')" class="font-bold text-blue-800 bg-gray-50 border-b">Show All</div>
+                            <div onclick="applyRemFilter('NEW')">New (Additions)</div>
+                            <div onclick="applyRemFilter('STOP')">Stopped (Deletions)</div>
+                            <div onclick="applyRemFilter('MOD')">Modified (Any Change)</div>
+                            <div class="border-t border-gray-200 my-1"></div>
+                            <div class="px-3 py-1 text-xs font-bold text-gray-400 uppercase">Filter by Change</div>
+                            <div onclick="applyColFilter('basic')">Basic Pay Changes</div>
+                            <div onclick="applyColFilter('da')">DR (Relief) Changes</div>
+                            <div onclick="applyColFilter('ir')">IR Changes</div>
+                            <div onclick="applyColFilter('med')">Medical Changes</div>
+                            <div onclick="applyColFilter('aq')">AQ Changes</div>
+                            <div onclick="applyColFilter('pol')">Police Seva Changes</div>
+                            <div onclick="applyColFilter('arr')">Arrears Changes</div>
+                            <div onclick="applyColFilter('commuted')">Commutation Changes</div>
+                            <div onclick="applyColFilter('ehs')">EHS Changes</div>
+                            <div onclick="applyColFilter('it')">IT Changes</div>
+                            <div onclick="applyColFilter('excess')">Excess Recovery Changes</div>
+                            <div onclick="applyColFilter('net')">Net Pay Changes</div>
+                        </div>
+                        <div id="type-menu"><div onclick="applyTypeFilter('ALL')">All</div><div onclick="applyTypeFilter('Service')">Service</div><div onclick="applyTypeFilter('Family')">Family</div></div>
+                    </div>
+
+                    <div id="tab6-content" class="tab-pane">
+                        <div class="flex gap-4 items-center p-4 bg-purple-50 rounded border border-purple-100">
+                            <label class="font-bold text-gray-700">Select Month:</label>
+                            <select id="bill-month" class="border p-2 rounded font-bold bg-white"></select>
+                            <button onclick="generateMonthlyBill()" class="bg-purple-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-purple-700"><i class="fas fa-file-invoice-dollar mr-2"></i>Show Bill</button>
+                        </div>
+                    </div>
+
+                    <div id="tab7-content" class="tab-pane">
+                        <div class="flex gap-4 items-end bg-purple-50 p-4 rounded border border-purple-100">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Select Month</label>
+                                <select id="abs-month" class="border p-2 rounded font-bold bg-white w-40"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Group By</label>
+                                <select id="abs-group" class="border p-2 rounded font-bold bg-white w-48">
+                                    <option value="bill">Bill Number</option>
+                                    <option value="category">Pensioner Category</option>
+                                </select>
+                            </div>
+                            <button onclick="generateAbstract()" class="bg-teal-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-teal-700 h-10">Show Abstract</button>
+                        </div>
+                    </div>
+<div id="tab8-content" class="tab-pane">
+    <div class="bg-purple-50 p-4 rounded border border-purple-100 mb-4">
+        <h3 class="font-bold text-purple-800 mb-2">Additional Quantum (AQ) Analysis</h3>
+        
+        <div class="flex gap-4 mb-3 text-sm font-bold text-gray-700">
+            <label class="flex items-center cursor-pointer"><input type="radio" name="aq-mode" value="single" checked onclick="toggleAQInputs()" class="mr-2"> Single Month</label>
+            <label class="flex items-center cursor-pointer"><input type="radio" name="aq-mode" value="range" onclick="toggleAQInputs()" class="mr-2"> Date Range (From - To)</label>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <div id="aq-single-box">
+                <label class="block text-xs text-gray-500 font-bold">Select Month</label>
+                <select id="aq-month-single" class="border p-2 rounded font-bold bg-white w-40"></select>
+            </div>
+            
+            <div id="aq-range-box" class="hidden flex gap-2">
+                <div>
+                    <label class="block text-xs text-gray-500 font-bold">From</label>
+                    <select id="aq-month-from" class="border p-2 rounded font-bold bg-white w-32"></select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 font-bold">To</label>
+                    <select id="aq-month-to" class="border p-2 rounded font-bold bg-white w-32"></select>
+                </div>
+            </div>
+
+            <button onclick="generateAQReport()" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-indigo-700 mt-4">Show AQ Report</button>
+        </div>
+    </div>
+    
+    <div id="aq-output-area" class="overflow-x-auto mt-4"></div>
+</div>
+<div id="tab8-content" class="tab-pane">
+    <div class="bg-purple-50 p-4 rounded border border-purple-100 mb-4">
+        <button onclick="generateAQReport()" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-indigo-700 mt-4">Show AQ Report</button>
+    </div>
+</div>
+
+<div id="tab9-content" class="tab-pane">
+    <div id="master-history-container" class="min-h-[400px]">
+        <div class="text-center text-gray-400 py-10 font-bold">
+            <i class="fas fa-search text-4xl mb-3"></i><br>
+            Please Search & Select a Pensioner first...
+        </div>
+    </div>
+</div>
+<div id="tab10-content" class="tab-pane">
+    <div class="bg-blue-50 p-6 rounded-xl border border-blue-200 shadow-sm max-w-7xl mx-auto">
+        <h2 class="text-xl font-bold text-blue-900 mb-4 border-b border-blue-200 pb-2">
+            <i class="fas fa-file-invoice-dollar mr-2"></i> Family Pension & Settlement (Final V10)
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white p-4 rounded shadow-sm border-l-4 border-blue-600">
+                <h3 class="font-bold text-gray-700 mb-2 text-sm uppercase">Service Pensioner</h3>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div><label class="text-[10px] font-bold text-gray-400">CFMS ID</label><input type="text" id="fp_cfmsId" class="w-full border p-1 rounded font-mono font-bold bg-gray-100" readonly></div>
+                    <div><label class="text-[10px] font-bold text-gray-400">PPO No</label><input type="text" id="fp_ppo" class="w-full border p-1 rounded font-bold uppercase bg-gray-50"></div>
+                </div>
+                <div class="mb-2"><label class="text-[10px] font-bold text-gray-400">Name</label><input type="text" id="fp_spName" class="w-full border p-1 rounded font-bold uppercase bg-gray-50"></div>
+                <div><label class="text-xs font-bold text-red-600">Date of Death (DOD)</label><input type="date" id="fp_dod" class="w-full border p-2 rounded font-bold text-red-600 border-red-200"></div>
+            </div>
+
+            <div class="bg-white p-4 rounded shadow-sm border-l-4 border-green-600">
+                <h3 class="font-bold text-gray-700 mb-2 text-sm uppercase">Beneficiary</h3>
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div class="col-span-2"><input type="text" id="fp_benName" placeholder="Name" class="w-full border p-2 rounded font-bold uppercase"></div>
+                    <div><select id="fp_relation" class="w-full border p-2 rounded font-bold"><option value="Wife">Wife</option><option value="Husband">Husband</option><option value="Son">Son</option><option value="Daughter">Daughter</option></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-[10px] font-bold text-gray-400">Beneficiary DOB</label><input type="date" id="fp_benDob" class="w-full border p-2 rounded font-bold"></div>
+                    <div><label class="text-[10px] font-bold text-gray-400">EFP End Date</label><input type="date" id="fp_efpEndDate" class="w-full border p-2 rounded font-bold bg-yellow-50"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-300 mb-6">
+            <h3 class="font-bold text-blue-800 mb-2 text-sm uppercase">Step 1: Fixation History</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div><label class="text-[10px] font-bold text-gray-500">Start RPS</label><select id="fp_startRps" class="w-full border p-2 rounded font-bold bg-gray-50"><option value="1999">RPS 1999</option><option value="2005">RPS 2005</option><option value="2010">RPS 2010</option><option value="2015">RPS 2015</option><option value="2022">RPS 2022</option></select></div>
+                <div><label class="text-[10px] font-bold text-gray-500">EFP Basic</label><input type="number" id="fp_efpBase" class="w-full border p-2 rounded font-bold text-green-700"></div>
+                <div><label class="text-[10px] font-bold text-gray-500">NFP Basic</label><input type="number" id="fp_nfpBase" class="w-full border p-2 rounded font-bold text-blue-700"></div>
+                <button onclick="previewFixationTable()" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded shadow hover:bg-indigo-700">Show History</button>
+            </div>
+            <div id="fp_editTableArea" class="mt-4 hidden"><div id="fp_editTableBody"></div></div>
+        </div>
+
+        <div class="bg-gray-100 p-1 rounded-t-lg flex border-b border-gray-300">
+            <button onclick="switchSettlementTab('LTA')" id="btn-tab-lta" class="flex-1 py-2 font-bold text-sm bg-white text-blue-800 border-t-2 border-blue-600 rounded-tl-lg shadow-sm">1. LTA / Excess Calculation</button>
+            <button onclick="switchSettlementTab('FP')" id="btn-tab-fp" class="flex-1 py-2 font-bold text-sm text-gray-500 hover:bg-gray-50">2. F.P Arrears Calculation</button>
+        </div>
+
+        <div class="bg-white p-6 border border-gray-300 border-t-0 rounded-b-lg shadow-sm mb-6 min-h-[300px]">
+            
+            <div id="content-tab-lta">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-bold text-gray-700 uppercase text-xs">Service Pensioner Account Settlement</h4>
+                    <button onclick="calculateSettlementV10()" class="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded hover:bg-green-700 shadow"><i class="fas fa-search mr-1"></i> Check Records & Calculate</button>
+                </div>
+
+                <div id="excess_display_area" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                        <h5 class="text-red-800 font-bold text-sm mb-2 uppercase"><i class="fas fa-exclamation-triangle mr-1"></i> Excess Payments Detected</h5>
+                        <div id="excess_list_html" class="text-xs text-gray-700 mb-3 bg-white p-2 border rounded"></div>
+                        <div class="flex justify-between items-center border-t border-red-200 pt-2">
+                            <span class="text-xs font-bold text-red-900">Net Recoverable Amount:</span>
+                            <span id="excess_final_amt" class="text-xl font-black text-red-600">₹ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lta_input_area" class="hidden">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded p-4">
+                        <h5 class="text-yellow-800 font-bold text-xs mb-2 uppercase text-center">Pension Stopped. Enter Full Month Rates (Previous Month)</h5>
+                        
+                        <div class="grid grid-cols-7 gap-2 mb-4 text-center">
+                            <div><label class="text-[9px] font-bold block">Basic Pay</label><input type="number" id="lta_bp" class="w-full border p-1 text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold block">DR Amt</label><input type="number" id="lta_da" class="w-full border p-1 text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold block">IR</label><input type="number" id="lta_ir" class="w-full border p-1 text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold block">Medical</label><input type="number" id="lta_ma" class="w-full border p-1 text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold block">AQ</label><input type="number" id="lta_aq" class="w-full border p-1 text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold block text-red-600">CVP (-)</label><input type="number" id="lta_cvp" class="w-full border p-1 text-center font-bold text-red-600"></div>
+                            <div><label class="text-[9px] font-bold block text-blue-800">GROSS</label><input type="number" id="lta_gross" class="w-full border p-1 text-center font-bold bg-blue-50 text-blue-800" readonly></div>
+                        </div>
+
+                        <h5 class="text-gray-500 font-bold text-[10px] mb-1 uppercase text-center border-t border-yellow-200 pt-2">
+                            Admissible LTA for <span id="lta_days_lived" class="text-blue-600">0</span> Days (Auto-Calculated)
+                        </h5>
+                        <div class="grid grid-cols-7 gap-2 text-center opacity-80">
+                            <input type="text" id="pro_bp" class="border bg-gray-50 p-1 text-xs font-bold text-center" readonly>
+                            <input type="text" id="pro_da" class="border bg-gray-50 p-1 text-xs font-bold text-center" readonly>
+                            <input type="text" id="pro_ir" class="border bg-gray-50 p-1 text-xs font-bold text-center" readonly>
+                            <input type="text" id="pro_ma" class="border bg-gray-50 p-1 text-xs font-bold text-center" readonly>
+                            <input type="text" id="pro_aq" class="border bg-gray-50 p-1 text-xs font-bold text-center" readonly>
+                            <input type="text" id="pro_cvp" class="border bg-red-50 p-1 text-xs font-bold text-center text-red-600" readonly>
+                            <input type="text" id="pro_gross" class="border bg-blue-50 p-1 text-xs font-bold text-center text-blue-800" readonly>
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <span class="text-xs font-bold text-green-800">Net LTA Payable:</span>
+                            <span id="lta_final_amt" class="text-xl font-black text-green-700 ml-2">₹ 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+         <div id="content-tab-fp" class="hidden">
+    <div class="bg-white border-2 border-indigo-100 rounded-lg p-4 mb-4 shadow-sm">
+    <h5 class="text-indigo-900 font-bold text-sm mb-3 uppercase flex items-center">
+        <i class="fas fa-calculator mr-2 text-indigo-600"></i> FP Arrears Parameters
+    </h5>
+    
+    <div class="grid grid-cols-2 md:grid-cols-8 gap-2 items-end">
+        <div class="col-span-1">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Start Date</label>
+            <input type="text" id="fp_arr_startDate" class="w-full border p-2 rounded bg-gray-100 font-bold text-gray-600 text-sm" readonly>
+        </div>
+        
+        <div class="col-span-1">
+            <label class="text-[10px] font-bold text-red-600 uppercase tracking-wider">Upto Date</label>
+            <input type="date" id="fp_arr_uptoDate" class="w-full border-2 border-indigo-300 p-2 rounded font-bold text-indigo-900 text-sm outline-none">
+        </div>
+
+        <div>
+            <label class="text-[10px] font-bold text-blue-900">DR Applic.</label>
+            <select id="fp_arr_drOpt" class="w-full border p-2 rounded font-bold text-sm bg-blue-50">
+                <option value="YES">YES</option>
+                <option value="NO">NO</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">DR %</label>
+            <input type="number" id="fp_arr_daRate" value="33.67" class="w-full border p-2 rounded font-bold text-center text-sm">
+        </div>
+        
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">IR %</label>
+            <input type="number" id="fp_arr_irRate" value="0" class="w-full border p-2 rounded font-bold text-center text-sm">
+        </div>
+
+        <div>
+            <label class="text-[10px] font-bold text-blue-700">Med (MA)</label>
+            <select id="fp_arr_maOpt" class="w-full border p-2 rounded font-bold text-sm bg-blue-50">
+                <option value="YES">YES</option>
+                <option value="NO">NO</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="text-[10px] font-bold text-red-700">EHS Amt</label>
+            <select id="fp_arr_ehsOpt" class="w-full border p-2 rounded font-bold text-sm bg-red-50">
+                <option value="225">225</option>
+                <option value="300">300</option>
+                <option value="0">0</option>
+            </select>
+        </div>
+
+        <div>
+            <button onclick="calculateFPArrearsV12()" class="w-full bg-indigo-600 text-white font-bold py-2 px-1 rounded shadow hover:bg-indigo-700 text-xs">
+                SHOW TABLE
+            </button>
+        </div>
+    </div>
+</div>
+
+    <div id="fp_arrears_result_area" class="hidden animate-fade-in-up">
+        <div class="flex justify-between items-end mb-2">
+            <h5 class="font-bold text-gray-700 text-xs uppercase"><i class="fas fa-edit mr-1"></i> Statement of Arrears (Editable)</h5>
+            <span class="text-[10px] text-gray-500 bg-yellow-50 px-2 py-1 border border-yellow-200 rounded">
+                <i class="fas fa-info-circle"></i> Note: You can edit <b>DR%</b> and <b>IR%</b> directly in the table below.
+            </span>
+        </div>
+        
+        <div class="overflow-x-auto border rounded-lg shadow-sm">
+            <table class="w-full text-xs border-collapse">
+                <thead class="bg-indigo-50 text-indigo-900 font-bold">
+                    <tr>
+                        <th class="border p-2 text-left">Period</th>
+                        <th class="border p-2">Days</th>
+                        <th class="border p-2 bg-green-50">Basic</th>
+                        <th class="border p-2 bg-purple-50">AQ</th>
+                        <th class="border p-2 w-16 text-blue-700">DR %</th>
+                        <th class="border p-2 bg-blue-50">DR Amt</th>
+                        <th class="border p-2 w-16 text-orange-700">IR %</th>
+                        <th class="border p-2 bg-orange-50">IR Amt</th>
+                        <th class="border p-2">Med</th>
+                        <th class="border p-2 font-black bg-gray-100">GROSS</th>
+                        <th class="border p-2 text-red-600">EHS(-)</th>
+                        <th class="border p-2 bg-indigo-100 text-indigo-900">NET</th>
+                    </tr>
+                </thead>
+                <tbody id="fp_arrears_tbody" class="bg-white text-center font-mono text-gray-700">
+                    </tbody>
+                <tfoot class="bg-gray-100 font-bold text-sm">
+                    <tr>
+                        <td colspan="11" class="border p-2 text-right text-gray-600">TOTAL ARREARS PAYABLE:</td>
+                        <td class="border p-2 text-indigo-700 bg-indigo-50" id="fp_total_arrears_disp">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+        <div class="text-center">
+             <button onclick="generateFinalProceedingsV10()" class="bg-gray-800 text-white px-10 py-3 rounded-full font-bold shadow-xl hover:bg-black uppercase tracking-widest"><i class="fas fa-print mr-2"></i> Generate Proceedings (2 Pages)</button>
+        </div>
+        
+        <div id="fp_outputArea" class="mt-6 bg-white border-2 border-gray-300 p-2 hidden shadow-2xl"></div>
+    </div>
+</div>
+        <div id="fp_outputArea" class="mt-6 bg-white border-2 border-gray-300 p-2 hidden shadow-2xl"></div>
+    </div>
+</div>
+                    <p id="action-error" class="text-red-500 font-bold mt-4 hidden text-center"></p>
+                    <div id="output-area" class="bg-white border-t mt-4 p-4 min-h-[200px] hidden"></div>
+                    <div id="print-btn-area" class="hidden text-center py-6 no-print bg-white border-t">
+                        <button onclick="printOutput()" class="bg-gray-800 hover:bg-black text-white px-8 py-3 rounded-full font-bold shadow-lg"><i class="fas fa-print mr-2"></i> Print Document</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+        const APP_PASSWORD = "12345"; 
+        let db, pensionData=[], currentRecords=[], currentPensionerInfo={}, ltaData=null, tempLtaData=null, funeralExcessList=[], varReportRows=[], currentFilter={}, typeFilter='ALL';
+
+        document.getElementById('password-input').addEventListener('keypress', e => { if(e.key==='Enter') checkPassword() });
+        function checkPassword() { if(document.getElementById('password-input').value === APP_PASSWORD) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-app').classList.remove('hidden'); } }
+
+        const req = indexedDB.open("PensionMasterDB_V40", 1);
+        req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("records")) e.target.result.createObjectStore("records", {autoIncrement:true}); };
+        req.onsuccess = e => { db=e.target.result; loadData(); };
+        function loadData() { db.transaction("records","readonly").objectStore("records").getAll().onsuccess = e => { pensionData = e.target.result||[]; updateStatus(); populateMonthDropdowns(); }; }
+        function saveData(d) { const tx=db.transaction("records","readwrite"); d.forEach(r=>tx.objectStore("records").add(r)); tx.oncomplete=()=>{ pensionData=pensionData.concat(d); updateStatus(); populateMonthDropdowns(); alert("Data Saved!"); }; }
+        function clearDatabase() { if(confirm("Delete All?")) db.transaction("records","readwrite").objectStore("records").clear().oncomplete=()=>location.reload(); }
+        function updateStatus() { document.getElementById('db-status').innerText = pensionData.length ? `${pensionData.length} records loaded` : "Database Empty"; }
+        function backupData() { if(!pensionData.length)return alert("No data"); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(pensionData)); a.download='Backup.json'; a.click(); }
+        function restoreData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ try{ const d=JSON.parse(e.target.result); if(confirm(`Import ${d.length} records?`)) saveData(d); }catch(x){alert("Invalid");} i.value=''; }; r.readAsText(f); }
+        function toggleUploadMode() { const f=document.querySelector('input[name="upload-type"][value="folder"]').checked; const i=document.getElementById('file-input'); if(f){i.setAttribute('webkitdirectory','');i.setAttribute('directory','');}else{i.removeAttribute('webkitdirectory');i.removeAttribute('directory');} }
+        
+        document.getElementById('file-input').addEventListener('change', async e => { 
+            const files = e.target.files; if(!files.length) return; 
+            document.getElementById('loading-bar').classList.remove('hidden'); 
+            let recs = []; 
+            for(let f of files) { 
+                if(f.name.match(/\.(xls|xlsx|csv)$/)) { 
+                    await new Promise(res => { 
+                        const r = new FileReader(); 
+                        r.onload = ev => { 
+                            try { 
+                                const wb = XLSX.read(ev.target.result, {type:f.name.endsWith('.csv')?'string':'array'}); 
+                                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:"", raw:false}); 
+                                recs.push(...json.map(standardizeKeys)); 
+                            } catch(x){} res(); 
+                        }; 
+                        r.readAsArrayBuffer(f); 
+                    }); 
+                } 
+            } 
+            document.getElementById('loading-bar').classList.add('hidden'); 
+            if(recs.length) saveData(recs); else alert("No valid data"); e.target.value = ''; 
+        });
+
+        function standardizeKeys(row) {
+            let n = {};
+            const map = { 
+                'pensioner name': 'NAME', 'name': 'NAME', 'cfmsid': 'CFMS_ID', 'id': 'CFMS_ID', 
+                'payscale type': 'PAYSCALE', 'pay scale type': 'PAYSCALE', 'scale type': 'PAYSCALE', 'prc': 'PAYSCALE', 
+                'pay scale area': 'AREA', 'area': 'AREA',
+                'month': 'MONTH', 'year': 'YEAR', 'ppo no': 'PPO', 'sto': 'STO', 
+                'pensioner type': 'TYPE', 'head of account': 'HOA', 
+                'ir amount': 'IR', 'police seva award amount': 'POLICE_SEVA', 'paid date': 'PAID_DATE', 
+                'total commuted amount': 'COMMUTED', 'excess paid recovery': 'EXCESS', 
+                'total gross amount': 'GROSS', 'total deduction amount': 'DEDUCTIONS', 'total net amount paid': 'NET', 
+                'basic amount': 'BASIC', 'dr amount': 'DA', 'medical allowance': 'MED', 'aq basic amount': 'AQ', 
+                'arrear amount': 'ARR', 'ehs deduction': 'EHS', 'it amount': 'IT',
+                'pensioner category': 'CATEGORY', 'category': 'CATEGORY',
+                'pension class': 'CLASS', 'class': 'CLASS',
+                'pensioner status': 'STATUS', 'status': 'STATUS',
+                'region': 'REGION'
+            };
+
+            for(let k in row) { 
+                let cleanK = k.toLowerCase().trim().replace(/[^a-z0-9 %]/g,'').replace(/\s+/g, ' '); 
+                let noSpaceK = cleanK.replace(/\s/g, ''); 
+                
+                if(cleanK.includes('service') && cleanK.includes('dob')) n['SP_DOB'] = String(row[k]).trim();
+                else if(cleanK.includes('family') && cleanK.includes('dob')) n['FP_DOB'] = String(row[k]).trim();
+                else if(cleanK.includes('age')) n['AGE'] = String(row[k]).trim();
+                else if((cleanK.includes('dr') || cleanK.includes('da')) && (cleanK.includes('%') || cleanK.includes('rate'))) n['DA_PCT'] = String(row[k]).trim();
+                else if(cleanK.includes('aq') && (cleanK.includes('%') || cleanK.includes('rate'))) n['AQ_PCT'] = String(row[k]).trim();
+                
+                if(map[cleanK]) n[map[cleanK]] = String(row[k]).trim(); 
+                else if(map[noSpaceK]) n[map[noSpaceK]] = String(row[k]).trim(); 
+                else n[k.trim()] = String(row[k]).trim(); 
+
+                if(!n['CFMS_ID'] && cleanK.includes('cfms')) n['CFMS_ID'] = String(row[k]).trim();
+                
+                if(!n['NAME'] && cleanK.includes('name') && !cleanK.includes('bank')) n['NAME'] = String(row[k]).trim(); 
+                if(!n['PAYSCALE'] && ((cleanK.includes('scale') && cleanK.includes('type')) || cleanK.includes('prc'))) n['PAYSCALE'] = String(row[k]).trim(); 
+                if(!n['AREA'] && cleanK.includes('area')) n['AREA'] = String(row[k]).trim();
+                if(!n['TYPE'] && cleanK.includes('pensioner') && cleanK.includes('type')) n['TYPE'] = String(row[k]).trim();
+            }
+            return n;
+        }
+
+        document.getElementById('cfms-input').addEventListener('input', function(e) { const v = this.value.toLowerCase().trim(); const list = document.getElementById('autocomplete-list'); list.innerHTML = ''; if(v.length < 3) { list.classList.add('hidden'); return; } const seen = new Set(); pensionData.forEach(r => { const id = String(r.CFMS_ID).toLowerCase().trim(); const name = String(r.NAME).toLowerCase(); const ppo = String(r.PPO||'').toLowerCase(); if((id.includes(v) || name.includes(v) || ppo.includes(v)) && !seen.has(id)) { seen.add(id); const d = document.createElement('div'); d.className = 'autocomplete-item p-3 border-b cursor-pointer flex justify-between'; d.innerHTML = `<span>${r.NAME}</span> <span class="font-bold text-blue-600">${r.CFMS_ID}</span>`; d.onmousedown = () => selectPensioner(String(r.CFMS_ID).trim(), r.NAME); list.appendChild(d); } }); if(list.hasChildNodes()) list.classList.remove('hidden'); });
+        document.getElementById('cfms-input').addEventListener('blur', ()=>setTimeout(()=>document.getElementById('autocomplete-list').classList.add('hidden'),200));
+
+        function selectPensioner(id, name) {
+            document.getElementById('cfms-input').value = ''; 
+            currentRecords = pensionData.filter(x => String(x.CFMS_ID).trim() === id);
+            
+            if(currentRecords.length > 0) {
+                currentRecords.sort((a,b)=>(parseInt(a.YEAR)*100+parseInt(a.MONTH))-(parseInt(b.YEAR)*100+parseInt(b.MONTH)));
+                const lat = currentRecords[currentRecords.length-1]; 
+                const fst = currentRecords[0]; 
+
+                currentPensionerInfo = { name:lat.NAME, id:lat.CFMS_ID, ppo:lat.PPO||'-', sto:lat.STO||'SUB TREASURY', type:lat.TYPE||'Service Pensioner', hoa:lat.HOA||'', payscale:lat.PAYSCALE||'N/A', area:lat.AREA||'' };
+                
+                let h = (currentPensionerInfo.hoa || '').replace(/[^a-zA-Z0-9]/g,'');
+                currentPensionerInfo.finalHOA = h.length >= 13 ? `${h.substring(0,4)}-${h.substring(4,6)}-${h.substring(6,9)}-${h.substring(9,11)}-${h.substring(11,13)}-310-318${h.length>19?'-'+h.substring(19):''}` : h + " (Verify)";
+
+                document.getElementById('pensioner-name').innerText = name;
+                document.getElementById('payscale-display').innerText = currentPensionerInfo.payscale;
+                
+                const startStr = `${String(fst.MONTH).padStart(2,'0')}/${fst.YEAR}`;
+                const endStr = `${String(lat.MONTH).padStart(2,'0')}/${lat.YEAR}`;
+                document.getElementById('data-range-display').innerText = `Available: ${startStr} to ${endStr}`;
+                
+                document.getElementById('pensioner-info').classList.remove('hidden');
+                // --- INSERT THIS INSIDE selectPensioner() FUNCTION ---
+    
+    // Auto-fill Family Pension Tab
+    if(document.getElementById('fp_spName')) {
+        document.getElementById('fp_spName').value = currentPensionerInfo.name;
+        document.getElementById('fp_ppo').value = currentPensionerInfo.ppo;
+        document.getElementById('fp_cfmsId').value = currentPensionerInfo.id;
+        
+        // Try to verify if we have Death Date in records (Optional check)
+        // If not available, user enters manually.
+    }
+                showTab('tab1');
+            }
+        }
+        
+        function generatePayslip() {
+            if(!currentRecords.length) return alert("Select a pensioner first.");
+            const input = document.getElementById('month-input').value; 
+            if(!input) return alert("Enter Month (MM/YYYY)");
+            const [m, y] = input.split('/');
+            const rec = currentRecords.find(r => parseInt(r.MONTH) == parseInt(m) && parseInt(r.YEAR) == parseInt(y));
+            
+            if(rec) {
+                const v = getVal(rec); 
+                const isFamily = (currentPensionerInfo.type || '').toLowerCase().includes('family');
+                const dob = isFamily ? (rec.FP_DOB || '-') : (rec.SP_DOB || '-');
+                const age = rec.AGE || '-';
+
+                let h = `<div class="payslip-container"><div class="payslip-print"><div class="payslip-header">PENSION PAY SLIP<br><span style="font-size:14px; color:black;">${v.month}</span><br><span style="font-size:12px; color:gray;">${currentPensionerInfo.sto}</span></div><hr style="border:1px solid #1e3a8a; margin-bottom:15px;"><div class="grid grid-cols-2 gap-2 mb-4 text-sm font-bold"><div>Name: ${currentPensionerInfo.name}</div><div class="text-right">CFMS ID: ${currentPensionerInfo.id}</div><div>PPO No: ${currentPensionerInfo.ppo}</div><div class="text-right">Type: ${currentPensionerInfo.type}</div><div class="text-blue-700">DOB: ${dob}</div><div class="text-right text-blue-700">Age: ${age} Yrs</div></div><div style="display:flex; border:1px solid #ccc;"><div style="width:50%; border-right:1px solid #ccc;"><div style="padding:5px; color:#15803d; font-weight:bold; border-bottom:1px solid #ccc;">EARNINGS</div><table class="w-full text-sm"><tr><td>Basic:</td><td class="text-right">${fmt(v.basic)}</td></tr><tr><td>DR ${v.daPct ? '('+v.daPct+')' : ''}:</td><td class="text-right">${fmt(v.da)}</td></tr><tr><td>IR:</td><td class="text-right">${fmt(v.ir)}</td></tr><tr><td>Medical:</td><td class="text-right">${fmt(v.med)}</td></tr><tr><td>AQ ${v.aqPct ? '('+v.aqPct+')' : ''}:</td><td class="text-right">${fmt(v.aq)}</td></tr><tr><td>Police Seva:</td><td class="text-right">${fmt(v.pol)}</td></tr><tr><td>Arrears:</td><td class="text-right">${fmt(v.arr)}</td></tr><tr><td class="text-red-600 font-bold">Commuted (CVP):</td><td class="text-right text-red-600 font-bold">- ${fmt(v.commuted)}</td></tr><tr style="border-top:1px solid #ccc; font-weight:bold; background:#f0f9ff;"><td>GROSS:</td><td class="text-right">${fmt(v.gross)}</td></tr></table></div><div style="width:50%;"><div style="padding:5px; color:#b91c1c; font-weight:bold; border-bottom:1px solid #ccc;">DEDUCTIONS</div><table class="w-full text-sm"><tr><td>EHS:</td><td class="text-right">${fmt(v.ehs)}</td></tr><tr><td>IT:</td><td class="text-right">${fmt(v.it)}</td></tr><tr><td>Excess Recovery:</td><td class="text-right">${fmt(v.excess)}</td></tr><tr style="height:80px;"><td></td><td></td></tr><tr style="border-top:1px solid #ccc; font-weight:bold; background:#fff1f2;"><td>TOTAL DED:</td><td class="text-right">${fmt(v.totDed)}</td></tr></table></div></div><div class="mt-4 p-4 border rounded bg-blue-50 text-center"><div class="text-sm text-gray-500">NET AMOUNT</div><div class="text-3xl font-bold text-blue-900">₹ ${fmt(v.net)}</div><div class="text-sm italic text-gray-600 mt-1">(${numberToWords(v.net)} Only)</div></div><div class="flex justify-between mt-4 text-xs font-bold text-gray-600"><div>Bill ID: <span class="text-black font-mono text-sm">${v.bill}</span></div><div class="text-right">Paid Date: <span class="text-black text-sm">${v.date}</span></div></div></div></div>`;
+                showOut(h);
+            } else { alert("Data not found for " + input); }
+        }
+
+        function generateComparison() {
+            if(!currentRecords.length) return alert("Select a pensioner first.");
+            const m1 = document.getElementById('comp-m1').value;
+            const m2 = document.getElementById('comp-m2').value;
+            if(!m1 || !m2) return alert("Enter both months.");
+
+            const r1 = currentRecords.find(r => parseInt(r.MONTH) == parseInt(m1.split('/')[0]) && parseInt(r.YEAR) == parseInt(m1.split('/')[1]));
+            const r2 = currentRecords.find(r => parseInt(r.MONTH) == parseInt(m2.split('/')[0]) && parseInt(r.YEAR) == parseInt(m2.split('/')[1]));
+
+            let h = `
+            <div class="comp-container">
+                <div class="comp-header-box">
+                    <h2 class="text-xl font-bold uppercase text-gray-800">${currentPensionerInfo.name}</h2>
+                    <div class="text-sm font-bold text-gray-600 mt-1">ID: ${currentPensionerInfo.id} &nbsp;|&nbsp; PPO: ${currentPensionerInfo.ppo}</div>
+                </div>
+                <table class="comp-table">
+                    <thead><tr><th width="35%">DESCRIPTION</th><th width="20%">${m1}</th><th width="20%">${m2}</th><th width="25%">DIFF</th></tr></thead>
+                    <tbody>
+            `;
+
+            const b1 = r1 ? (getVal(r1).bill || '-') : '-';
+            const b2 = r2 ? (getVal(r2).bill || '-') : '-';
+            h += `<tr style="background:#f8fafc;"><td>BILL ID</td><td class="font-mono text-xs">${b1}</td><td class="font-mono text-xs font-bold text-blue-800">${b2}</td><td>-</td></tr>`;
+
+            const items = [
+                {k:'age', l:'Age (Yrs)'}, {k:'basic', l:'Basic Pay'}, {k:'daPct', l:'DR %'}, {k:'da', l:'Dearness Relief'}, {k:'ir', l:'Interim Relief'}, {k:'med', l:'Medical Allowance'}, {k:'aqPct', l:'AQ %'}, {k:'aq', l:'Addl. Quantum'}, {k:'pol', l:'Police Seva'}, {k:'arr', l:'Arrears'}, {k:'commuted', l:'Commutation (Ded)'}, {k:'gross', l:'GROSS EARNINGS'}, {k:'ehs', l:'EHS (Ded)'}, {k:'it', l:'Income Tax (Ded)'}, {k:'excess', l:'Excess Recovery'}, {k:'totDed', l:'TOTAL DEDUCTIONS'}, {k:'net', l:'NET PAY'}
+            ];
+
+            items.forEach(item => {
+                let v1 = 0, v2 = 0;
+                if(item.k === 'age' || item.k.includes('Pct')) {
+                    v1 = r1 ? (item.k==='age' ? r1.AGE : (getVal(r1)[item.k]||'-')) : '-';
+                    v2 = r2 ? (item.k==='age' ? r2.AGE : (getVal(r2)[item.k]||'-')) : '-';
+                } else {
+                    v1 = r1 ? parseFloat(getVal(r1)[item.k] || 0) : 0;
+                    v2 = r2 ? parseFloat(getVal(r2)[item.k] || 0) : 0;
+                }
+                let diffHtml = '<span class="diff-neutral">-</span>';
+                if(typeof v1 === 'number' && typeof v2 === 'number') {
+                    const diff = v2 - v1;
+                    if(diff > 0) diffHtml = `<span class="diff-pos">+${fmt(diff)}</span>`;
+                    else if(diff < 0) diffHtml = `<span class="diff-neg">${fmt(diff)}</span>`;
+                }
+                let style = "";
+                if(item.k==='net' || item.k==='gross') style="font-weight:bold; background:#f1f5f9;";
+                const d1 = (typeof v1 === 'number') ? fmt(v1) : v1;
+                const d2 = (typeof v2 === 'number') ? fmt(v2) : v2;
+                h += `<tr style="${style}"><td>${item.l}</td><td>${d1}</td><td>${d2}</td><td>${diffHtml}</td></tr>`;
+            });
+
+            h += `</tbody></table><div class="mt-4 text-center text-xs text-gray-400">Pension Master V48</div></div>`;
+            showOut(h);
+        }
+
+        // REPLACE THE OLD generateReport FUNCTION WITH THIS
+
+function generateReport() {
+    if(!currentRecords.length) return alert("Select pensioner.");
+    const fVal = document.getElementById('from-input').value;
+    const tVal = document.getElementById('to-input').value;
+    let displayRecs = currentRecords;
+    
+    // Date Filtering Logic
+    if(fVal && tVal) {
+        const [fm, fy] = fVal.split('/'); const [tm, ty] = tVal.split('/');
+        if(fm && fy && tm && ty) { 
+            const fDate = parseInt(fy)*100 + parseInt(fm); 
+            const tDate = parseInt(ty)*100 + parseInt(tm); 
+            displayRecs = currentRecords.filter(r => { 
+                const rDate = parseInt(r.YEAR)*100 + parseInt(r.MONTH); 
+                return rDate >= fDate && rDate <= tDate; 
+            }); 
+        }
+    }
+
+    // Initialize Totals
+    let t = { basic:0, da:0, ir:0, med:0, aq:0, pol:0, arr:0, commuted:0, gross:0, ehs:0, it:0, excess:0, totDed:0, net:0 };
+
+    let rowsHtml = '';
+    displayRecs.forEach(r => { 
+        const v = getVal(r); 
+        
+        // Accumulate Totals
+        t.basic += parseFloat(v.basic)||0;
+        t.da += parseFloat(v.da)||0;
+        t.ir += parseFloat(v.ir)||0;
+        t.med += parseFloat(v.med)||0;
+        t.aq += parseFloat(v.aq)||0;
+        t.pol += parseFloat(v.pol)||0;
+        t.arr += parseFloat(v.arr)||0;
+        t.commuted += parseFloat(v.commuted)||0;
+        t.gross += parseFloat(v.gross)||0;
+        t.ehs += parseFloat(v.ehs)||0;
+        t.it += parseFloat(v.it)||0;
+        t.excess += parseFloat(v.excess)||0;
+        t.totDed += parseFloat(v.totDed)||0;
+        t.net += parseFloat(v.net)||0;
+
+        rowsHtml += `<tr class="hover:bg-gray-50">
+            <td class="border p-1 text-center font-bold">${v.month}</td>
+            <td class="border p-1 text-center text-blue-600">${r.AGE||'-'}</td>
+            <td class="border p-1 text-right text-gray-600">${fmt(v.basic)}</td>
+            <td class="border p-1 text-right text-xs">${v.daPct||''}</td>
+            <td class="border p-1 text-right text-gray-600">${fmt(v.da)}</td>
+            <td class="border p-1 text-right text-gray-400">${fmt(v.ir)}</td>
+            <td class="border p-1 text-right text-gray-400">${fmt(v.med)}</td>
+            <td class="border p-1 text-right text-xs">${v.aqPct||''}</td>
+            <td class="border p-1 text-right text-gray-400">${fmt(v.aq)}</td>
+            <td class="border p-1 text-right text-gray-400">${fmt(v.pol)}</td>
+            <td class="border p-1 text-right text-gray-400">${fmt(v.arr)}</td>
+            <td class="border p-1 text-right text-red-500 font-bold">${fmt(v.commuted)}</td>
+            <td class="border p-1 text-right font-bold bg-gray-50">${fmt(v.gross)}</td>
+            <td class="border p-1 text-right text-gray-600">${fmt(v.ehs)}</td>
+            <td class="border p-1 text-right text-gray-600">${fmt(v.it)}</td>
+            <td class="border p-1 text-right text-red-500">${fmt(v.excess)}</td>
+            <td class="border p-1 text-right font-bold text-red-700">${fmt(v.totDed)}</td>
+            <td class="border p-1 text-right font-bold bg-blue-50 text-blue-900">${fmt(v.net)}</td>
+            <td class="border p-1 text-center font-mono text-[10px] bg-gray-50">${v.bill}</td>
+        </tr>`; 
+    });
+
+    // Grand Total Row HTML
+    const totalRow = `
+        <tr class="bg-gray-700 text-white font-bold border-t-2 border-black" style="font-size:11px;">
+            <td class="border p-2 text-center text-yellow-300 uppercase tracking-wider">GRAND TOTAL</td>
+            <td class="border p-1 text-center">-</td> <td class="border p-1 text-right">${fmt(t.basic)}</td>
+            <td class="border p-1 text-right">-</td> <td class="border p-1 text-right">${fmt(t.da)}</td>
+            <td class="border p-1 text-right">${fmt(t.ir)}</td>
+            <td class="border p-1 text-right">${fmt(t.med)}</td>
+            <td class="border p-1 text-right">-</td> <td class="border p-1 text-right">${fmt(t.aq)}</td>
+            <td class="border p-1 text-right">${fmt(t.pol)}</td>
+            <td class="border p-1 text-right">${fmt(t.arr)}</td>
+            <td class="border p-1 text-right text-red-300">${fmt(t.commuted)}</td>
+            <td class="border p-1 text-right text-yellow-300">${fmt(t.gross)}</td>
+            <td class="border p-1 text-right">${fmt(t.ehs)}</td>
+            <td class="border p-1 text-right">${fmt(t.it)}</td>
+            <td class="border p-1 text-right text-red-300">${fmt(t.excess)}</td>
+            <td class="border p-1 text-right text-red-300">${fmt(t.totDed)}</td>
+            <td class="border p-1 text-right text-yellow-300 font-extrabold text-sm border-l border-gray-500">${fmt(t.net)}</td>
+            <td class="border p-1 text-center">-</td> </tr>
+    `;
+
+    let h = `<div class="p-8 bg-white overflow-x-auto report-print-mode">
+    <h2 class="text-center font-bold mb-4 text-xl text-blue-800">Pension Report: ${currentPensionerInfo.name} (CFMS ID: ${currentPensionerInfo.id})</h2>
+    <table class="w-full border text-xs">
+        <thead>
+            <tr class="bg-gray-200 text-gray-700">
+                <th class="border p-1">Mo/Yr</th><th class="border p-1">Age</th>
+                <th class="border p-1">Basic</th><th class="border p-1">DR %</th><th class="border p-1">DR Amt</th>
+                <th class="border p-1">IR</th><th class="border p-1">Med</th>
+                <th class="border p-1">AQ %</th><th class="border p-1">AQ Amt</th>
+                <th class="border p-1">Pol</th><th class="border p-1">Arr</th>
+                <th class="border p-1 text-red-600">Com</th><th class="border p-1 font-bold">Gross</th>
+                <th class="border p-1">EHS</th><th class="border p-1">IT</th>
+                <th class="border p-1 text-red-600">Excess</th><th class="border p-1 font-bold">Ded</th>
+                <th class="border p-1 font-bold bg-blue-100">Net</th><th class="border p-1 bg-gray-100 font-bold">Bill ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${rowsHtml}
+        </tbody>
+        <tfoot>
+            ${totalRow}
+        </tfoot>
+    </table></div>`;
+    
+    showOut(h);
+}
+
+        function toggleProcInputs() { const type = document.getElementById('proc-select').value; const amtDiv = document.getElementById('amount-input-div'); if(type === 'lta') amtDiv.classList.add('hidden'); else amtDiv.classList.remove('hidden'); checkStatus(); }
+        function checkStatus() {
+    const dateVal = document.getElementById('proc-date').value;
+    const type = document.getElementById('proc-select').value;
+    const statusDiv = document.getElementById('excess-status-display');
+    const modal = document.getElementById('excess-modal');
+    
+    // Reset Data
+    tempLtaData = null; 
+    funeralExcessList = []; // Reset list
+    if(modal) modal.classList.add('hidden'); 
+
+    if(!dateVal) { 
+        statusDiv.classList.add('hidden'); 
+        return; 
+    }
+
+    const date = new Date(dateVal);
+    const deathMonth = date.getMonth() + 1;
+    const deathYear = date.getFullYear();
+    const deathDateStr = date.toLocaleDateString('en-GB');
+
+    // 1. Filter Records (Death Month & After)
+    const excessRecords = currentRecords.filter(r => {
+        const rM = parseInt(r.MONTH), rY = parseInt(r.YEAR);
+        if (rY > deathYear) return true;
+        if (rY == deathYear && rM >= deathMonth) return true;
+        return false;
+    });
+
+    // Sort Chronologically
+    excessRecords.sort((a,b) => (parseInt(a.YEAR)*100+parseInt(a.MONTH)) - (parseInt(b.YEAR)*100+parseInt(b.MONTH)));
+
+    statusDiv.classList.remove('hidden');
+
+    if(excessRecords.length > 0) {
+        let totalRecoverable = 0;
+        let tableHtml = '';
+
+        excessRecords.forEach(r => {
+            const v = getVal(r);
+            const netPaid = parseFloat(v.net) || 0;
+            const rM = parseInt(r.MONTH), rY = parseInt(r.YEAR);
+            let admissible = 0;
+            let excess = 0;
+            let daysLabel = "";
+
+            if(rM === deathMonth && rY === deathYear) {
+                // Death Month Calculation
+                const daysInMonth = new Date(rY, rM, 0).getDate();
+                const daysLived = date.getDate(); 
+                admissible = Math.round((netPaid / daysInMonth) * daysLived);
+                daysLabel = `${daysLived} Days`;
+            } else {
+                // Subsequent Months (Full Excess)
+                admissible = 0;
+                daysLabel = "0 Days"; 
+            }
+
+            excess = netPaid - admissible;
+            totalRecoverable += excess;
+
+            // 1. Add to Popup Table
+            tableHtml += `
+                <tr>
+                    <td class="p-2 font-bold text-gray-700 text-center">${String(rM).padStart(2,'0')}/${rY}</td>
+                    <td class="p-2 font-mono text-gray-500 text-center">${v.bill}</td>
+                    <td class="p-2 text-right">${fmt(netPaid)}</td>
+                    <td class="p-2 text-right text-green-700 font-bold">${fmt(admissible)}<br><span class="text-[9px] text-gray-400 font-normal">(${daysLabel})</span></td>
+                    <td class="p-2 text-right font-bold text-red-600">${fmt(excess)}</td>
+                </tr>
+            `;
+            
+            // 2. IMPORTANT FIX: Save Data for Printing (Proceedings)
+            funeralExcessList.push({ 
+                month: `${rM}/${rY}`, 
+                paid: netPaid,           // ఇది ఇంతకుముందు మిస్ అయ్యింది
+                admissible: admissible,  // ఇది కూడా
+                excess: excess, 
+                daysLabel: daysLabel     // ఇది undefined రాకుండా ఫిక్స్ చేశాం
+            });
+        });
+
+        // Update Popup Content
+        if(document.getElementById('ex-deathdate')) document.getElementById('ex-deathdate').innerText = deathDateStr;
+        if(document.getElementById('excess-table-body')) document.getElementById('excess-table-body').innerHTML = tableHtml;
+        if(document.getElementById('ex-recoverable')) document.getElementById('ex-recoverable').innerText = 'Rs. ' + fmt(totalRecoverable);
+        
+        if(modal) modal.classList.remove('hidden');
+
+        // Status Box Update
+        statusDiv.className = "p-3 rounded border border-red-500 bg-red-100 text-red-900 text-center text-sm";
+        statusDiv.innerHTML = `<b>⚠️ EXCESS PAYMENT DETECTED</b><br>Recoverable: <b>Rs. ${fmt(totalRecoverable)}</b>`;
+
+    } else {
+        // No Excess Logic
+        if(type === 'lta') {
+            let prevM = deathMonth - 1, prevY = deathYear;
+            if(prevM === 0) { prevM = 12; prevY--; }
+            const prevRecord = currentRecords.find(r => parseInt(r.MONTH) == prevM && parseInt(r.YEAR) == prevY);
+            
+            if(prevRecord) {
+                const v = getVal(prevRecord);
+                tempLtaData = { prevMonthName: `${prevM}/${prevY}`, deathMonthName: `${deathMonth}/${deathYear}`, daysLived: date.getDate(), daysInMonth: new Date(deathYear, deathMonth, 0).getDate(), raw: v };
+                statusDiv.className = "p-3 rounded border border-blue-500 bg-blue-100 text-blue-900 text-center text-sm";
+                statusDiv.innerHTML = `<b>✅ READY FOR LTA</b><br>Prev Month Data Found. Click 'Generate' to Verify/Edit rates.`;
+            } else {
+                statusDiv.className = "p-3 rounded border border-orange-500 bg-orange-100 text-orange-900 text-center text-sm";
+                statusDiv.innerHTML = `<b>⚠️ DATA MISSING</b><br>Previous month (${prevM}/${prevY}) data not found.`;
+            }
+        } else {
+             statusDiv.className = "p-3 rounded border border-green-500 bg-green-100 text-green-800 text-center text-sm";
+            statusDiv.innerHTML = `<b>✅ NO EXCESS PAYMENT</b><br>Proceed with Funeral Charges.`;
+        }
+    }
+}
+        function initiateGeneration() { const type = document.getElementById('proc-select').value; const dd=document.getElementById('proc-date').value, hr=document.getElementById('proc-heir').value, rl=document.getElementById('proc-relation').value; if(!dd || !hr || !rl) return showErr("Fill all details"); if(type === 'lta') { if(!tempLtaData) return showErr("LTA Data not available."); document.getElementById('edit-basic').value = tempLtaData.raw.basic; document.getElementById('edit-da').value = tempLtaData.raw.da; document.getElementById('edit-ir').value = tempLtaData.raw.ir; document.getElementById('edit-med').value = tempLtaData.raw.med; document.getElementById('edit-aq').value = tempLtaData.raw.aq; document.getElementById('edit-pol').value = tempLtaData.raw.pol; document.getElementById('edit-arr').value = 0; document.getElementById('edit-com').value = tempLtaData.raw.commuted; document.getElementById('edit-modal').style.display = 'flex'; } else { generateProceeding(); } }
+        function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
+        function confirmLTAData() { const p = n => parseFloat(document.getElementById(n).value) || 0; const abs = n => Math.abs(n); const edited = { basic: abs(p('edit-basic')), da: abs(p('edit-da')), ir: abs(p('edit-ir')), med: abs(p('edit-med')), aq: abs(p('edit-aq')), pol: abs(p('edit-pol')), arr: abs(p('edit-arr')), commuted: abs(p('edit-com')) }; edited.gross = (edited.basic + edited.da + edited.ir + edited.med + edited.aq + edited.pol + edited.arr) - edited.commuted; const factor = tempLtaData.daysLived / tempLtaData.daysInMonth; const pro = { basic: Math.round(edited.basic * factor), da: Math.round(edited.da * factor), ir: Math.round(edited.ir * factor), med: Math.round(edited.med * factor), aq: Math.round(edited.aq * factor), pol: Math.round(edited.pol * factor), arr: Math.round(edited.arr * factor), commuted: Math.round(edited.commuted * factor), gross: 0 }; pro.gross = (pro.basic + pro.da + pro.ir + pro.med + pro.aq + pro.pol + pro.arr) - pro.commuted; ltaData = { ...tempLtaData, full: edited, pro: pro }; closeEditModal(); generateProceeding(); }
+        
+        // --- PROCEEDINGS GENERATION (UPDATED FOR V48) ---
+        function generateProceeding() {
+            const type = document.getElementById('proc-select').value; const dd=document.getElementById('proc-date').value, hr=document.getElementById('proc-heir').value, rl=document.getElementById('proc-relation').value, bk=document.getElementById('proc-bank-acc').value;
+            const dateObj = new Date(dd); const deathDateStr = dateObj.toLocaleDateString('en-GB'); const deathMonth = dateObj.getMonth()+1; const deathYear = dateObj.getFullYear(); const deathMonthStr = `${deathMonth}/${deathYear}`; 
+            
+            // New Date Format with space for Day
+            const todayDate = new Date();
+            const todayMonth = String(todayDate.getMonth() + 1).padStart(2, '0');
+            const todayYear = todayDate.getFullYear();
+            const formattedDateStr = `<span style="display:inline-block; width: 60px; text-align:center; border-bottom:1px solid black;">&nbsp;</span> / ${todayMonth} / ${todayYear}`;
+
+            let html = '';
+            if(type === 'funeral') {
+                const am = document.getElementById('proc-amount').value; let noteHtml = ''; let excessTableHtml = ''; let warningHtml = ''; const area = (currentPensionerInfo.area || '').toLowerCase(); const scaleType = (currentPensionerInfo.payscale || '').toLowerCase(); const isApplicable = (area.includes('ap state') && scaleType.includes('2022 prc')); if(!isApplicable) { warningHtml = `<h2 style="color: red; text-align: center; font-weight: bold; text-decoration: underline; font-size: 18pt; margin: 20px 0;">⚠️ NOT APPLICABLE - CHECK PAY SCALE / AREA ⚠️</h2>`; } if(funeralExcessList.length > 0) { excessTableHtml = `<table class="lta-table" style="margin: 10px auto; width: 95%;"><tr style="background:#f3f4f6; font-weight:bold;"><th>Month</th><th>Amount Credited</th><th>Admissible (Days)</th><th>Excess Recoverable</th></tr>`; let grandTotal = 0; funeralExcessList.forEach(item => { grandTotal += item.excess; excessTableHtml += `<tr><td align="center">${item.month}</td><td align="right">${fmt(item.paid)}</td><td align="right">${fmt(item.admissible)} (${item.daysLabel})</td><td align="right" style="font-weight:bold; color:red;">${fmt(item.excess)}</td></tr>`; }); excessTableHtml += `<tr style="background:#fff1f2; font-weight:bold;"><td colspan="3" align="right">TOTAL RECOVERABLE EXCESS</td><td align="right" style="color:#b91c1c;">${fmt(grandTotal)}</td></tr></table>`; noteHtml = `<b>NOTE:</b> The pensioner expired on <b>${deathDateStr}</b>. Excess payment has been detected for <b>${funeralExcessList.length} month(s)</b> as detailed above.<br><i>Action:</i> The Total Excess amount of <b>Rs. ${fmt(grandTotal)}</b> is to be recovered.`; } else { const days = dateObj.getDate(); noteHtml = `<b>NOTE:</b> The pensioner expired on <b>${deathDateStr}</b>. The pension for the month of <b>${deathMonthStr}</b> has <b>NOT been credited yet</b>. Hence, there is <b>NO Excess Payment</b>.<br><i>Action:</i> The pension for this month is to be admitted/calculated for <b>${days} days only</b> (from 01-${deathMonth}-${deathYear} to ${deathDateStr}).`; } 
+                
+                // Updated Wording & Indentation
+                html = `<div class="print-box max-w-3xl mx-auto p-8 bg-white text-justify"><div class="text-center font-bold mb-4 uppercase underline">PROCEEDINGS OF THE SUB TREASURY OFFICER, ${currentPensionerInfo.sto.toUpperCase()}</div><div class="text-center font-bold mb-6">Present: Sri/Smt. _________________________________</div><div class="flex justify-between mb-4 font-bold"><div>Proc. No. ${currentPensionerInfo.id} / SA1</div><div>Dated: ${formattedDateStr}</div></div><div class="mb-4 flex"><div class="font-bold w-16 flex-shrink-0">Sub:</div><div class="text-justify">Public Services – Pensions – Sub Treasury, <b>${currentPensionerInfo.sto}</b> – Sanction of <b>Funeral charges</b> to the Legal Heirs/Beneficiary of Late Sri/Smt <b>${currentPensionerInfo.name}</b> – Orders – Issued.</div></div><div class="mb-4"><div class="font-bold mb-1">Ref:</div><ol class="ref-list"><li>G.O.Ms.No.39, Finance (HRM.V) Department dt: 08.03.2016.</li><li>Cir.Memo.No:FIN01-HROMISC/70/2023-HR-III, 2144840, dt: 26/09/2023 of Finance (HR-III-PENSION-GPF) Dept.</li><li>Application from Sri/Smt <b>${hr}</b>, <b>${rl}</b> of the deceased pensioner.</li></ol></div><div class="text-center font-bold mb-4 underline">ORDER:</div>${warningHtml}
+                <p class="mb-4 indent-para text-justify">Consequent on the demise of the Service Pensioner Late Sri/Smt <b>${currentPensionerInfo.name}</b> (PPO No: <b>${currentPensionerInfo.ppo}</b>, CFMS ID: <b>${currentPensionerInfo.id}</b>) on <b>${deathDateStr}</b>, Sanction is hereby accorded for the payment of <b>Rs. ${fmt(am)}</b> (Rupees ${numberToWords(am)} Only) towards <b>Funeral charges</b> to his/her <b>${rl}</b>, Sri/Smt <b>${hr}</b>, bearing <b>Bank Account No: ${bk || '___'}</b>.</p>
+                <p class="mb-4 indent-para text-justify">Further, the documents submitted by the Legal Heir/Beneficiary have been verified with reference to the PPO and their eligibility for Funeral Charges has been confirmed.</p>
+                <p class="mb-8 indent-para">The amount is debitable to the Head of Account: <b>${currentPensionerInfo.finalHOA}</b>.</p>
+                <div class="flex justify-between items-end mb-8"><div class="text-sm">To<br>The Individual.<br>Copy to the Manager,<br>Bank/Branch.</div><div class="text-center font-bold">Sub Treasury Officer<br>${currentPensionerInfo.sto}</div></div><div class="border-t pt-4 text-sm mt-4">${excessTableHtml}${noteHtml}</div></div>`;
+            } else if(type === 'lta') {
+                html = `<div class="print-box max-w-4xl mx-auto p-8 bg-white"><div class="text-center font-bold mb-8 text-xl underline">PAYMENT OF LIFETIME ARREARS (LTA)</div><div class="text-justify leading-relaxed indent-para">This is to authorize the payment of <b>Lifetime Arrears</b> in respect of Late <b>${currentPensionerInfo.name}</b> (PPO No: <b>${currentPensionerInfo.ppo}</b>, CFMS ID: <b>${currentPensionerInfo.id}</b>), attached to Sub Treasury, <b>${currentPensionerInfo.sto}</b>, who expired on <b>${deathDateStr}</b>.</div><br><div class="text-justify leading-relaxed indent-para">Based on the rules in force, the pension arrears for the period <b>01/${ltaData.deathMonthName} to ${deathDateStr}</b> (${ltaData.daysLived} Days) amounting to <b>Rs. ${fmt(ltaData.pro.gross)}/-</b> are hereby sanctioned to Sri/Smt <b>${hr}</b>, related as <b>${rl}</b> to the deceased pensioner, bearing Bank Account No: <b>${bk || 'N/A'}</b>. The calculation is based on the previous month's drawn particulars (pro-rated to the days lived in the death month) as detailed below:</div><table class="lta-table"><thead><tr class="lta-header"><th width="40%">Full Month Data (${ltaData.full.basic?ltaData.prevMonthName:'-'})<br><span style="font-size:9pt; font-weight:normal;">(Base for Calculation)</span></th><th width="20%">Description</th><th width="40%">Pro-Rata Data (${ltaData.deathMonthName})<br><span style="font-size:9pt; font-weight:normal;">(Calculated for ${ltaData.daysLived} / ${ltaData.daysInMonth} Days)</span></th></tr></thead><tbody><tr><td align="right">${fmt(ltaData.full.basic)}</td> <td align="center"><b>BASIC PAY</b></td> <td align="right"><b>${fmt(ltaData.pro.basic)}</b></td></tr><tr><td align="right">${fmt(ltaData.full.da)}</td> <td align="center"><b>DR ${ltaData.raw.daPct ? '('+ltaData.raw.daPct+')' : ''}</b></td> <td align="right"><b>${fmt(ltaData.pro.da)}</b></td></tr><tr><td align="right">${fmt(ltaData.full.ir)}</td> <td align="center">IR</td> <td align="right">${fmt(ltaData.pro.ir)}</td></tr><tr><td align="right">${fmt(ltaData.full.med)}</td> <td align="center">Medical</td> <td align="right">${fmt(ltaData.pro.med)}</td></tr><tr><td align="right">${fmt(ltaData.full.aq)}</td> <td align="center">Addl. Quant ${ltaData.raw.aqPct ? '('+ltaData.raw.aqPct+')' : ''}</td> <td align="right">${fmt(ltaData.pro.aq)}</td></tr><tr><td align="right">${fmt(ltaData.full.pol)}</td> <td align="center">Police Seva</td> <td align="right">${fmt(ltaData.pro.pol)}</td></tr><tr><td align="right">${fmt(ltaData.full.arr)}</td> <td align="center">Arrears</td> <td align="right">${fmt(ltaData.pro.arr)}</td></tr><tr class="text-red-700"><td align="right">(- ${fmt(ltaData.full.commuted)})</td> <td align="center"><b>Less: CVP</b></td> <td align="right"><b>(- ${fmt(ltaData.pro.commuted)})</b></td></tr><tr style="background:#f0f9ff; font-weight:bold;"><td align="right">${fmt(ltaData.full.gross)}</td> <td align="center">TOTAL GROSS</td> <td align="right">${fmt(ltaData.pro.gross)}</td></tr></tbody></table><div class="mt-4"><b>Amount in Words:</b> Rupees ${numberToWords(ltaData.pro.gross)} Only.</div><br><br><br><div class="flex justify-between items-end"><div>To<br>The Manager,<br>Bank/Branch.</div><div class="text-center font-bold">Sub Treasury Officer<br>${currentPensionerInfo.sto}</div></div></div>`;
+            }
+            showOut(html);
+        }
+
+        function populateMonthDropdowns() { 
+            const months = new Set(); 
+            pensionData.forEach(r => { if(r.MONTH && r.YEAR) months.add(`${String(r.MONTH).padStart(2,'0')}/${r.YEAR}`); }); 
+            const sorted = Array.from(months).sort((a,b) => { const [m1, y1] = a.split('/'); const [m2, y2] = b.split('/'); return (y2*100+parseInt(m2)) - (y1*100+parseInt(m1)); }); 
+            const fill = (id) => { const sel = document.getElementById(id); if(sel) { sel.innerHTML = ''; sorted.forEach(m => { const opt = document.createElement('option'); opt.value=m; opt.innerText=m; sel.appendChild(opt); }); } }; 
+            
+            fill('var-m1'); 
+            fill('var-m2'); 
+            fill('bill-month'); 
+            fill('abs-month'); 
+        } 
+
+       function generateVarianceReport() {
+            const m1Str = document.getElementById('var-m1').value;
+            const m2Str = document.getElementById('var-m2').value;
+            if(!m1Str || !m2Str || m1Str === m2Str) return alert("Select different months.");
+            const [m1, y1] = m1Str.split('/'); const [m2, y2] = m2Str.split('/');
+            
+            const recs1 = pensionData.filter(r => parseInt(r.MONTH) == parseInt(m1) && parseInt(r.YEAR) == parseInt(y1));
+            const recs2 = pensionData.filter(r => parseInt(r.MONTH) == parseInt(m2) && parseInt(r.YEAR) == parseInt(y2));
+            const allIds = new Set([...recs1.map(r=>r.CFMS_ID), ...recs2.map(r=>r.CFMS_ID)]);
+            varReportRows = [];
+            
+            let op = { count: recs1.length, amt: recs1.reduce((s,r) => s+(getVal(r).net||0), 0) };
+            let cl = { count: recs2.length, amt: recs2.reduce((s,r) => s+(getVal(r).net||0), 0) };
+            let add = { count: 0, amt: 0 };
+            let del = { count: 0, amt: 0 };
+            let mod = { count: 0, amt: 0 };
+
+            allIds.forEach(id => {
+                const r1 = recs1.find(r => r.CFMS_ID == id);
+                const r2 = recs2.find(r => r.CFMS_ID == id);
+                const v1 = r1 ? getVal(r1) : {basic:0, da:0, ir:0, med:0, aq:0, pol:0, arr:0, commuted:0, excess:0, ehs:0, it:0, gross:0, totDed:0, net:0};
+                const v2 = r2 ? getVal(r2) : {basic:0, da:0, ir:0, med:0, aq:0, pol:0, arr:0, commuted:0, excess:0, ehs:0, it:0, gross:0, totDed:0, net:0};
+                const pType = r2 ? (r2.TYPE || '-') : (r1.TYPE || '-');
+                const age = r2 ? (r2.AGE || '-') : (r1 ? (r1.AGE || '-') : '-');
+
+                let remarkText = "";
+                let status = "SAME";
+                let changes = [];
+
+                if(!r1 && r2) { status = "NEW"; remarkText = "🟢 New PPO"; add.count++; add.amt += v2.net; }
+                else if(r1 && !r2) { status = "STOP"; remarkText = "🔴 Stopped"; del.count++; del.amt += v1.net; }
+                else {
+                    const getDiffStr = (val2, val1) => { let d = (parseFloat(val2) || 0) - (parseFloat(val1) || 0); if (Math.abs(d) < 1) return null; return (d > 0 ? '+' : '') + fmt(d); };
+                    let dStr; 
+                    if (dStr = getDiffStr(v2.basic, v1.basic)) changes.push(`Basic ${dStr}`);
+                    if (dStr = getDiffStr(v2.da, v1.da))       changes.push(`DR ${dStr}`);
+                    if (dStr = getDiffStr(v2.ir, v1.ir))       changes.push(`IR ${dStr}`);
+                    if (dStr = getDiffStr(v2.med, v1.med))     changes.push(`Med ${dStr}`);
+                    if (dStr = getDiffStr(v2.aq, v1.aq))       changes.push(`AQ ${dStr}`);
+                    if (dStr = getDiffStr(v2.pol, v1.pol))     changes.push(`Pol ${dStr}`);
+                    if (dStr = getDiffStr(v2.arr, v1.arr))     changes.push(`Arr ${dStr}`);
+                    if (dStr = getDiffStr(v2.commuted, v1.commuted)) changes.push(`CVP ${dStr}`);
+                    if (dStr = getDiffStr(v2.ehs, v1.ehs))     changes.push(`EHS ${dStr}`);
+                    if (dStr = getDiffStr(v2.it, v1.it))       changes.push(`IT ${dStr}`);
+                    if (dStr = getDiffStr(v2.excess, v1.excess)) changes.push(`Excess ${dStr}`);
+                    if(changes.length > 0) { status = "MOD"; remarkText = changes.join("<br>"); mod.count++; mod.amt += (v2.net - v1.net); }
+                }
+                varReportRows.push({ id, name: r2 ? r2.NAME : r1.NAME, age: age, type: pType, status, v1, v2, remark: remarkText });
+            });
+
+            const cardsHtml = `<div class="audit-box"><div class="audit-card" style="cursor: default; border-color: #94a3b8;"><div class="ac-label">Opening Balance</div><div class="ac-count text-blue-600">${op.count}</div><div class="ac-amt">${fmt(op.amt)}</div></div><div class="audit-card" onclick="applyRemFilter('NEW')"><div class="ac-label">Additions</div><div class="ac-count text-green-600">${add.count}</div><div class="ac-amt text-green-700">+${fmt(add.amt)}</div></div><div class="audit-card" onclick="applyRemFilter('STOP')"><div class="ac-label">Deletions</div><div class="ac-count text-red-600">${del.count}</div><div class="ac-amt text-red-700">-${fmt(del.amt)}</div></div><div class="audit-card" onclick="applyRemFilter('MOD')"><div class="ac-label">Modifications</div><div class="ac-count text-orange-600">${mod.count}</div><div class="ac-amt text-orange-700">${mod.amt>0?'+':''}${fmt(mod.amt)}</div></div><div class="audit-card" style="cursor: default; border-color: #94a3b8;"><div class="ac-label">Closing Balance</div><div class="ac-count text-blue-800">${cl.count}</div><div class="ac-amt">${fmt(cl.amt)}</div></div></div>`;
+            const fullHtml = `<div class="w-full"><div class="flex justify-between items-center mb-4 no-print border-b pb-2"><h2 class="text-xl font-bold text-gray-800">Variance Audit Report (${m1Str} vs ${m2Str})</h2><button onclick="location.reload()" class="bg-gray-600 text-white px-4 py-1 rounded text-sm font-bold">Back</button></div>${cardsHtml}<div id="var-table-container" class="mt-4 overflow-x-auto min-h-[500px]"></div></div>`;
+            showOut(fullHtml); renderVarianceTable();
+        }
+        function renderVarianceTable() {
+            const cont = document.getElementById('var-table-container'); if(!cont) return; cont.innerHTML = ''; 
+            let h = `<table class="var-table" style="table-layout: auto; width: 100%;"><thead><tr><th class="sticky-col text-left" style="min-width: 220px;">Pensioner Details</th><th style="min-width: 50px;">Age</th><th style="min-width: 90px;">Type <i class="fas fa-filter cursor-pointer" onclick="toggleTypeMenu(event)"></i></th><th style="min-width: 110px;">BASIC PAY <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('basic')"></i></th><th style="min-width: 110px;">DR (Relief) <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('da')"></i></th><th style="min-width: 100px;">IR <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('ir')"></i></th><th style="min-width: 100px;">MEDICAL <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('med')"></i></th><th style="min-width: 100px;">AQ <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('aq')"></i></th><th style="min-width: 100px;">POLICE <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('pol')"></i></th><th style="min-width: 100px;" class="bg-yellow-50">ARREARS <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('arr')"></i></th><th style="min-width: 110px;" class="text-red-800">COMMUTATION <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('commuted')"></i></th><th style="min-width: 120px;" class="bg-gray-100 font-extrabold text-gray-900">GROSS <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('gross')"></i></th><th style="min-width: 100px;" class="text-red-700">EHS <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('ehs')"></i></th><th style="min-width: 100px;" class="text-red-700">IT <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('it')"></i></th><th style="min-width: 100px;" class="text-red-700">EXCESS <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('excess')"></i></th><th style="min-width: 110px;" class="text-red-900 font-bold">TOT DED <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('totDed')"></i></th><th style="min-width: 120px;" class="bg-blue-50 font-extrabold text-blue-900">NET PAY <i class="fas fa-filter cursor-pointer" onclick="applyColFilter('net')"></i></th><th class="bg-gray-100" style="min-width: 300px;">REMARKS <i class="fas fa-filter cursor-pointer" onclick="toggleRemMenu(event)"></i></th></tr></thead><tbody>`;
+            varReportRows.forEach(row => {
+                let show = false;
+                if(typeFilter !== 'ALL') { const rowType = String(row.type || '').toLowerCase(); if(typeFilter === 'Service') { if(!rowType.includes('service') && !rowType.includes('normal')) return; } else if(typeFilter === 'Family') { if(!rowType.includes('family')) return; } }
+                if(currentFilter.type === 'ALL') show = row.status !== 'SAME'; else if(currentFilter.type === 'COL') { if(row.v2[currentFilter.value] - row.v1[currentFilter.value] !== 0) show = true; } else if(currentFilter.type === 'REM') { const v = currentFilter.value; if(v==='NEW' && row.status==='NEW') show=true; else if(v==='STOP' && row.status==='STOP') show=true; else if(v==='MOD' && row.status==='MOD') show=true; else if(v==='ALL') show=true; else if((row.remark || '').includes(v)) show=true; }
+                if(show) { let remClass = "text-gray-600 block"; if(row.status === 'NEW') remClass = "st-new block"; else if(row.status === 'STOP') remClass = "st-stop block"; else if(row.status === 'MOD') remClass = "text-blue-900 font-bold block text-left"; h += `<tr class="hover:bg-gray-50"><td class="sticky-col text-left"><div class="font-bold text-gray-800">${row.name}</div><div class="text-[10px] text-gray-500 font-mono">ID: ${row.id}</div></td><td class="text-center font-bold text-gray-600">${row.age}</td><td class="text-center text-[10px] font-bold text-blue-600">${row.type}</td>${cmp(row.v1.basic,row.v2.basic)}${cmp(row.v1.da,row.v2.da)}${cmp(row.v1.ir,row.v2.ir)}${cmp(row.v1.med,row.v2.med)}${cmp(row.v1.aq,row.v2.aq)}${cmp(row.v1.pol,row.v2.pol)}${cmp(row.v1.arr,row.v2.arr,true)}${cmp(row.v1.commuted,row.v2.commuted)}${cmp(row.v1.gross,row.v2.gross)}${cmp(row.v1.ehs,row.v2.ehs)}${cmp(row.v1.it,row.v2.it)}${cmp(row.v1.excess,row.v2.excess)}${cmp(row.v1.totDed,row.v2.totDed)}${cmp(row.v1.net,row.v2.net)}<td class="text-left align-middle text-xs" style="height: auto !important; padding: 8px; line-height: 1.8; white-space: nowrap;"><span class="${remClass}">${row.remark || ''}</span></td></tr>`; }
+            });
+            if(h.endsWith('<tbody>')) { h += `<tr><td colspan="18" class="text-center p-4 text-gray-500 font-bold">No records found matching filters.</td></tr>`; } h += `</tbody></table>`; cont.innerHTML = h;
+        }
+        
+        function cmp(v1, v2, highlight=false) { v1=parseFloat(v1)||0; v2=parseFloat(v2)||0; const d=v2-v1; const bgClass = (d > 0) ? 'bg-up' : (d < 0 ? 'bg-down' : ''); const sign = (d > 0) ? '+' : ''; const diffHtml = d !== 0 ? `<div class="v-diff ${d>0?'diff-pos':'diff-neg'}">${sign}${fmt(d)}</div>` : ''; return `<td class="${bgClass}"><div class="cell-inner"><div class="v-curr">${fmt(v2)}</div>${d !== 0 ? `<div class="v-prev">${fmt(v1)}</div>` : ''}${diffHtml}</div></td>`; }
+        function applyColFilter(key) { currentFilter={type:'COL',value:key}; renderVarianceTable(); }
+        function applyRemFilter(val) { currentFilter={type:'REM',value:val}; document.getElementById('remarks-menu').style.display='none'; renderVarianceTable(); }
+        function applyTypeFilter(val) { typeFilter=val; document.getElementById('type-menu').style.display='none'; renderVarianceTable(); }
+        function toggleRemMenu(e) { const m=document.getElementById('remarks-menu'); const t=document.getElementById('type-menu'); t.style.display='none'; m.style.display=m.style.display==='block'?'none':'block'; m.style.left=(e.pageX-180)+'px'; m.style.top=(e.pageY+10)+'px'; e.stopPropagation(); }
+        function toggleTypeMenu(e) { const m=document.getElementById('type-menu'); const r=document.getElementById('remarks-menu'); r.style.display='none'; m.style.display=m.style.display==='block'?'none':'block'; m.style.left=(e.pageX)+'px'; m.style.top=(e.pageY+10)+'px'; e.stopPropagation(); }
+        function closeMenus(e) { if(!e.target.closest('#remarks-menu')) document.getElementById('remarks-menu').style.display='none'; if(!e.target.closest('#type-menu')) document.getElementById('type-menu').style.display='none'; }
+
+        function showOut(h) { const a=document.getElementById('output-area'); a.innerHTML=h; a.classList.remove('hidden'); document.getElementById('print-btn-area').classList.remove('hidden'); document.getElementById('action-error').classList.add('hidden'); document.getElementById('welcome-msg').classList.add('hidden'); a.scrollIntoView({behavior:'smooth'}); }
+        function showErr(m) { const e=document.getElementById('action-error'); e.innerText=m; e.classList.remove('hidden'); }
+        function fmt(n) { return parseFloat(n||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+        function numberToWords(n) { const num = parseInt(n); if(num === 0) return "Zero"; const units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]; const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]; function convert(num) { if (num < 20) return units[num]; if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + units[num % 10] : ""); if (num < 1000) return units[Math.floor(num / 100)] + " Hundred" + (num % 100 ? " and " + convert(num % 100) : ""); if (num < 100000) return convert(Math.floor(num / 1000)) + " Thousand" + (num % 1000 ? " " + convert(num % 1000) : ""); if (num < 10000000) return convert(Math.floor(num / 100000)) + " Lakh" + (num % 100000 ? " " + convert(num % 100000) : ""); return convert(Math.floor(num / 10000000)) + " Crore" + (num % 10000000 ? " " + convert(num % 10000000) : ""); } return convert(num); }
+        
+        function getVal(d) {
+            const k=y=>d[y]||'0';
+            const b=parseFloat(d.BASIC||k('Basic Amount')), da=parseFloat(d.DA||k('DR Amount')), ir=parseFloat(d.IR||k('IR Amount')), m=parseFloat(d.MED||k('Medical Allowance')), aq=parseFloat(d.AQ||k('AQ Basic Amount')), p=parseFloat(d.POLICE_SEVA||k('Police Seva Award Amount')), ar=parseFloat(d.ARR||k('Arrear Amount'));
+            const com=parseFloat(d.COMMUTED||k('Total Commuted Amount')||0), exc=parseFloat(d.EXCESS||k('Excess paid recovery')||0), ehs=parseFloat(d.EHS||k('EHS Deduction')), it=parseFloat(d.IT||k('IT Amount'));
+            const gr = d.GROSS ? parseFloat(d.GROSS) : ((b+da+ir+m+aq+p+ar)-com); 
+            const td = d.DEDUCTIONS ? parseFloat(d.DEDUCTIONS) : (ehs+it+exc); 
+            const net = d.NET ? parseFloat(d.NET) : (gr-td);
+            return { basic:b, da:da, ir:ir, med:m, aq:aq, pol:p, arr:ar, commuted:com, excess:exc, ehs:ehs, it:it, gross:gr, totDed:td, net:net, daPct:d.DA_PCT||'', aqPct:d.AQ_PCT||'', month:String(d.MONTH).padStart(2,'0')+'/'+d.YEAR, date:d.PAID_DATE||d['Paid Date']||'-', bill:d['Bill Number']||d['Bill No']||'-' };
+        }
+        
+        function showTab(t) { 
+            document.querySelectorAll('.tab-pane').forEach(e=>e.classList.remove('active')); 
+            document.querySelectorAll('.tab-button').forEach(e=>e.classList.remove('active')); 
+            document.getElementById(t+'-btn').classList.add('active'); 
+            document.getElementById(t+'-content').classList.add('active'); 
+            document.getElementById('output-area').classList.add('hidden'); 
+            document.getElementById('print-btn-area').classList.add('hidden'); 
+            document.getElementById('welcome-msg').classList.add('hidden');
+        }
+        function printOutput() { const content = document.getElementById('output-area').innerHTML; const win = window.open('', '', 'height=700,width=900'); win.document.write('<html><head><title>Print</title><script src="https://cdn.tailwindcss.com"><\/script><style>@media print { .no-print { display: none; } body { -webkit-print-color-adjust: exact; } .payslip-container { box-shadow: none; border: 1px solid #ccc; margin: 0; width: 100%; } .report-print-mode { width: 100%; } .comp-container { border: none; } .comp-header-box { border: 2px solid #94a3b8 !important; background: none; } .comp-table th { background: none; border: 1px solid #94a3b8 !important; } .comp-table td { border: 1px solid #cbd5e1 !important; } }</style></head><body>' + content + '</body></html>'); win.document.close(); win.focus(); setTimeout(() => { win.print(); }, 500); }
+
+        // --- ABSTRACT LOGIC (Updated with Region for All India Services) ---
+       function generateAbstract() {
+    const mStr = document.getElementById('abs-month').value;
+    const type = document.getElementById('abs-group').value;
+    if(!mStr) return alert("Select Month");
+
+    const [m, y] = mStr.split('/');
+    const recs = pensionData.filter(r => parseInt(r.MONTH) == parseInt(m) && parseInt(r.YEAR) == parseInt(y));
+    if(!recs.length) return alert("No Data for " + mStr);
+
+    const groups = {};
+    
+    recs.forEach(r => {
+        const v = getVal(r);
+        let pKey = '-';
+        
+        if(type === 'bill') {
+            pKey = v.bill || '-';
+        } else if(type === 'category') {
+            let hoa = String(r.HOA || '').trim();
+            let cat = (r.CATEGORY || 'NA').toUpperCase();
+
+            if(hoa.startsWith('2071')) {
+                // నిర్దిష్ట స్ట్రింగ్ మ్యాచింగ్ - FINANCIAL ASSISTANCE
+                if(hoa === '2071011010007040041VN') {
+                    pKey = "FINANCIAL ASSISTANCE PENSION";
+                } else {
+                    let minorHead = hoa.substring(6, 9); // 101, 103, 105
+                    let shareCode = hoa.substring(11, 13); // 14 or 04
+
+                    if(minorHead === '101') {
+                        pKey = `CIVIL PENSION (Service-${shareCode === '14' ? 'AP Share' : 'Comp Share'})`;
+                    } else if(minorHead === '105') {
+                        pKey = `CIVIL PENSION (Family-${shareCode === '14' ? 'AP Share' : 'Comp Share'})`;
+                    } else if(minorHead === '103') {
+                        pKey = `VO/VRO/VAO/PS PENSION (${shareCode === '14' ? 'AP Share' : 'Comp Share'})`;
+                    } else {
+                        pKey = cat;
+                    }
+                }
+            } else {
+                pKey = cat;
+            }
+
+            if(pKey.includes('ALL INDIA') && (r.REGION || r.Region)) {
+                pKey += ` (${(r.REGION || r.Region).toUpperCase()})`;
+            }
+        }
+
+        let hoaLabel = (r.HOA || 'Unknown').trim();
+        const key = pKey + "###" + hoaLabel; 
+
+        if(!groups[key]) groups[key] = { pKey, hoa: hoaLabel, count: 0, amt: 0 };
+        groups[key].count++;
+        groups[key].amt += v.net;
+    });
+
+    const rows = Object.values(groups).sort((a,b) => a.pKey.localeCompare(b.pKey));
+    let label = type === 'bill' ? 'Bill Number' : 'Pensioner Category';
+    let totalCount = 0, totalAmt = 0;
+
+    let h = `<div class="max-w-4xl mx-auto mt-4"><h3 class="text-center font-bold text-xl mb-4 text-teal-800">Abstract Report (${label}) - ${mStr}</h3>
+    <table class="w-full border-collapse border border-gray-400 text-sm shadow-md bg-white">
+        <thead class="bg-teal-100 text-teal-900"><tr>
+            <th class="border border-gray-400 p-2 w-12 text-center">Sl.No</th>
+            <th class="border border-gray-400 p-2 text-left">${label}</th>
+            <th class="border border-gray-400 p-2 text-left">Head of Account</th>
+            <th class="border border-gray-400 p-2 text-center w-32">Pensions</th>
+            <th class="border border-gray-400 p-2 text-right w-40">Amount</th>
+        </tr></thead><tbody>`;
+
+    rows.forEach((row, i) => {
+        totalCount += row.count;
+        totalAmt += row.amt;
+        h += `<tr class="hover:bg-gray-50">
+            <td class="border border-gray-400 p-2 text-center">${i+1}</td>
+            <td class="border border-gray-400 p-2 font-bold text-gray-800">${row.pKey}</td>
+            <td class="border border-gray-400 p-2 text-gray-600 font-mono text-xs">${row.hoa}</td>
+            <td class="border border-gray-400 p-2 text-center font-bold">${row.count}</td>
+            <td class="border border-gray-400 p-2 text-right font-mono text-blue-900">${fmt(row.amt)}</td>
+        </tr>`;
+    });
+
+    h += `<tr class="bg-gray-200 font-extrabold text-blue-900 border-t-2 border-black">
+        <td colspan="3" class="border border-gray-400 p-3 text-right">GRAND TOTAL</td>
+        <td class="border border-gray-400 p-3 text-center">${totalCount}</td>
+        <td class="border border-gray-400 p-3 text-right text-lg">₹ ${fmt(totalAmt)}</td>
+    </tr></tbody></table></div>`;
+
+    showOut(h);
+}
+        let billData = [], billFilters = {}, billSort = {col:null, dir:'asc'};
+        let currentPage = 1;
+        const recordsPerPage = 200; 
+
+        function generateMonthlyBill() {
+            const mStr = document.getElementById('bill-month').value;
+            if(!mStr) return alert("Select a month");
+            
+            const [m, y] = mStr.split('/');
+            const rawRecs = pensionData.filter(r => parseInt(r.MONTH) == parseInt(m) && parseInt(r.YEAR) == parseInt(y));
+            
+            if(!rawRecs.length) return alert("No data found for " + mStr);
+            billData = rawRecs.map((r, i) => {
+                const v = getVal(r);
+                
+                // NEW LOGIC: Add Region to Category if All India
+                let cat = (r.CATEGORY || r.Category || 'NA').toUpperCase();
+                if(cat.includes('ALL INDIA') && (r.REGION || r.Region)) {
+                    cat += ` (${(r.REGION || r.Region).toUpperCase()})`;
+                }
+
+                return {
+                    idx: i + 1,
+                    details: `${r.NAME}<br><span class="text-[10px] text-gray-500">ID:${r.CFMS_ID} | PPO:${r.PPO||'-'}</span>`,
+                    detailsText: `${r.NAME} (ID:${r.CFMS_ID} | PPO:${r.PPO||'-'})`,
+                    rawName: r.NAME.toLowerCase() + r.CFMS_ID + (r.PPO||'').toLowerCase(),
+                    age: parseInt(r.AGE) || 0,
+                    category: cat, // Used updated category
+                    type: (r.TYPE || r.Type || 'NA').toUpperCase(),
+                    class: (r.CLASS || r.Class || 'NA').toUpperCase(),
+                    status: (r.STATUS || r.Status || 'NA').toUpperCase(),
+                    area: (r.AREA || r.Area || 'NA').toUpperCase(),
+                    payscale: (r.PAYSCALE || r['Scale Type'] || r.ScaleType || 'NA').toUpperCase(),
+                    region: (r.REGION || r.Region || 'NA').toUpperCase(), 
+                    billId: (v.bill || r.BILL_ID || r.BillId || '-').toString(),
+                    basic: v.basic, daPct: parseFloat(v.daPct) || 0, da: v.da, ir: v.ir, med: v.med, aqPct: parseFloat(v.aqPct) || 0, aq: v.aq, pol: v.pol, arr: v.arr, commuted: v.commuted, gross: v.gross, ehs: v.ehs, it: v.it, excess: v.excess, totDed: v.totDed, net: v.net
+                };
+            });
+
+            billFilters = {}; currentPage = 1;
+            const h = `<div class="w-full bg-gray-50 min-h-screen font-sans"><div class="sticky top-0 z-30 bg-white border-b shadow-md no-print"><div class="flex items-center justify-between px-4 py-3"><div class="flex items-center gap-4"><h2 class="text-lg font-bold text-gray-800 whitespace-nowrap">Bill: <span class="text-purple-700">${mStr}</span></h2><div id="pagination-controls" class="flex items-center gap-2 border-l pl-4 border-gray-300"></div></div><div class="flex items-center gap-4"><div class="bg-blue-50 text-blue-900 px-3 py-1 rounded border border-blue-200 flex flex-col items-center justify-center min-w-[80px]"><span class="text-[9px] font-bold uppercase text-gray-500">Records</span><span id="rec-count" class="font-bold text-lg leading-none">0</span></div><div class="text-right border-l pl-4 border-gray-300 ml-2"><div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Net Pay</div><div id="disp-tot-net" class="text-2xl font-extrabold text-green-600 font-mono leading-none">0.00</div></div><div class="flex gap-2 pl-4 ml-2 border-l border-gray-300"><button onclick="resetBillFilters()" class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded flex items-center justify-center shadow transition" title="Reset Filters"><i class="fas fa-undo"></i></button><button onclick="downloadBillExcel('${mStr.replace('/','-')}')" class="bg-green-600 hover:bg-green-700 text-white w-8 h-8 rounded flex items-center justify-center shadow transition hover:scale-105" title="Download Excel"><i class="fas fa-file-excel"></i></button><button onclick="location.reload()" class="bg-gray-800 hover:bg-black text-white px-3 h-8 rounded text-xs font-bold shadow transition">Back</button></div></div></div><div class="bg-gray-100 px-4 py-3 border-t border-gray-200 text-xs shadow-inner"><div class="grid grid-cols-4 gap-4"><div><label class="block font-bold text-gray-500 mb-1">Category</label><select id="fil-category" onchange="applyTopFilter('category', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Type</label><select id="fil-type" onchange="applyTopFilter('type', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Class</label><select id="fil-class" onchange="applyTopFilter('class', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Status</label><select id="fil-status" onchange="applyTopFilter('status', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Area</label><select id="fil-area" onchange="applyTopFilter('area', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Scale Type</label><select id="fil-payscale" onchange="applyTopFilter('payscale', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Region</label><select id="fil-region" onchange="applyTopFilter('region', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div><div><label class="block font-bold text-gray-500 mb-1">Bill No</label><select id="fil-billId" onchange="applyTopFilter('billId', this.value)" class="w-full border p-1.5 rounded font-semibold text-gray-700 outline-none focus:border-purple-500"></select></div></div></div></div><div class="overflow-auto p-4 bg-gray-50" style="height: calc(100vh - 250px);"><table class="w-full border-collapse text-xs shadow-lg rounded-lg overflow-hidden"><thead class="sticky top-0 z-20 bg-gray-200 text-gray-700 border-b-2 border-gray-300">${getBillHeaderHTML()}</thead><tbody id="bill-table-body" class="bg-white divide-y divide-gray-100"></tbody></table></div></div>`;
+            showOut(h); populateBillFilters(); renderBillTable(); 
+        }
+
+        function downloadBillExcel(monthLabel) {
+            const exportData = billData.filter(row => {
+                if(billFilters['category'] && row.category !== billFilters['category']) return false;
+                if(billFilters['type'] && row.type !== billFilters['type']) return false;
+                if(billFilters['class'] && row.class !== billFilters['class']) return false;
+                if(billFilters['status'] && row.status !== billFilters['status']) return false;
+                if(billFilters['area'] && row.area !== billFilters['area']) return false;
+                if(billFilters['payscale'] && row.payscale !== billFilters['payscale']) return false;
+                if(billFilters['region'] && row.region !== billFilters['region']) return false;
+                if(billFilters['billId'] && row.billId !== billFilters['billId']) return false;
+                for(let k in billFilters) { if(!k.startsWith('TBL_')) continue; const fVal = billFilters[k]; if(!fVal) continue; const dataKey = k.replace('TBL_', ''); if(dataKey === 'details') { if(!row.rawName.includes(fVal)) return false; } else { if(!checkFilter(row[dataKey], fVal)) return false; } }
+                return true;
+            });
+            if(exportData.length === 0) return alert("No data to export!");
+            const finalSheetData = exportData.map(r => ({ "S.No": r.idx, "Pensioner Details": r.detailsText, "Age": r.age, "Basic Pay": r.basic, "DR %": r.daPct, "DR Amt": r.da, "IR": r.ir, "Medical": r.med, "AQ %": r.aqPct, "AQ Amt": r.aq, "Police Seva": r.pol, "Arrears": r.arr, "Commutation (CVP)": r.commuted, "GROSS": r.gross, "EHS": r.ehs, "IT": r.it, "Excess Rec": r.excess, "Total Ded": r.totDed, "NET PAY": r.net, "Bill ID": r.billId }));
+            const ws = XLSX.utils.json_to_sheet(finalSheetData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Monthly Bill"); XLSX.writeFile(wb, `Bill_${monthLabel}.xlsx`);
+        }
+
+        function populateBillFilters() {
+            const fill = (key, elemId) => { const unique = [...new Set(billData.map(d => d[key]))].filter(x => x && x !== 'NA' && x !== '-').sort(); const sel = document.getElementById(elemId); if(!sel) return; sel.innerHTML = '<option value="">All</option>'; unique.forEach(u => sel.appendChild(new Option(u, u))); };
+            ['category','type','class','status','area','payscale','region','billId'].forEach(k => fill(k, 'fil-'+k));
+        }
+        function applyTopFilter(key, val) { billFilters[key] = val; currentPage = 1; renderBillTable(); }
+        function resetBillFilters() { billFilters = {}; ['category','type','class','status','area','payscale','region','billId'].forEach(k => { const el = document.getElementById('fil-'+k); if(el) el.value = ""; }); document.querySelectorAll('#bill-header-inputs input').forEach(i => i.value = ""); currentPage = 1; renderBillTable(); }
+
+        function getBillHeaderHTML() {
+            const cols = [['S.No', 'idx', '40px', false], ['Pensioner Details', 'details', '220px', false], ['Age', 'age', '50px', true], ['Basic Pay', 'basic', '80px', true], ['DR %', 'daPct', '50px', true], ['DR Amt', 'da', '80px', true], ['IR', 'ir', '70px', true], ['Med', 'med', '70px', true], ['AQ %', 'aqPct', '50px', true], ['AQ Amt', 'aq', '70px', true], ['Police', 'pol', '70px', true], ['Arrears', 'arr', '80px', true], ['CVP', 'commuted', '80px', true], ['GROSS', 'gross', '90px', true], ['EHS', 'ehs', '70px', true], ['IT', 'it', '70px', true], ['Excess', 'excess', '70px', true], ['Tot Ded', 'totDed', '90px', true], ['NET PAY', 'net', '100px', true], ['Bill ID', 'billId', '80px', false]];
+            let h = `<tr class="h-10 text-gray-700">`; let f = `<tr class="h-10 bg-gray-50" id="bill-header-inputs">`;
+            cols.forEach(([lbl, key, w, isNum]) => { h += `<th class="border p-2 cursor-pointer hover:bg-gray-300" style="min-width:${w}" onclick="sortBillData('${key}')">${lbl} <i class="fas fa-sort text-gray-400 ml-1 text-[10px]"></i></th>`; f += `<td class="border p-1 bg-white">`; if(key !== 'idx') { const ph = isNum ? '>50 or 50-100' : 'Search...'; f += `<input type="text" placeholder="${ph}" onkeyup="applyTableSearch('${key}', this.value)" class="w-full border text-[10px] p-1 rounded bg-gray-50 focus:bg-white text-center">`; } f += `</td>`; });
+            return h + '</tr>' + f + '</tr>';
+        }
+        
+        function applyTableSearch(key, val) { billFilters['TBL_'+key] = val.toLowerCase().trim(); currentPage = 1; renderBillTable(); }
+        function sortBillData(key) { billSort.dir = (billSort.col === key && billSort.dir === 'asc') ? 'desc' : 'asc'; billSort.col = key; billData.sort((a, b) => { let va = a[key], vb = b[key]; if(typeof va === 'number') return billSort.dir === 'asc' ? va - vb : vb - va; return billSort.dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va)); }); renderBillTable(); }
+        function checkFilter(rowVal, filterVal) { if(!filterVal) return true; if(filterVal.includes('-')) { const parts = filterVal.split('-'); if(parts.length === 2) { const min = parseFloat(parts[0]), max = parseFloat(parts[1]); if(!isNaN(min) && !isNaN(max)) return rowVal >= min && rowVal <= max; } } else if(filterVal.startsWith('>')) { const num = parseFloat(filterVal.substring(1)); if(!isNaN(num)) return rowVal > num; } else if(filterVal.startsWith('<')) { const num = parseFloat(filterVal.substring(1)); if(!isNaN(num)) return rowVal < num; } return String(rowVal).toLowerCase().includes(filterVal); }
+
+        function renderBillTable() {
+            const tbody = document.getElementById('bill-table-body'); if(!tbody) return; tbody.innerHTML = ''; let tNet = 0;
+            const filteredData = billData.filter(row => { if(billFilters['category'] && row.category !== billFilters['category']) return false; if(billFilters['type'] && row.type !== billFilters['type']) return false; if(billFilters['class'] && row.class !== billFilters['class']) return false; if(billFilters['status'] && row.status !== billFilters['status']) return false; if(billFilters['area'] && row.area !== billFilters['area']) return false; if(billFilters['payscale'] && row.payscale !== billFilters['payscale']) return false; if(billFilters['region'] && row.region !== billFilters['region']) return false; if(billFilters['billId'] && row.billId !== billFilters['billId']) return false; for(let k in billFilters) { if(!k.startsWith('TBL_')) continue; const fVal = billFilters[k]; if(!fVal) continue; const dataKey = k.replace('TBL_', ''); if(dataKey === 'details') { if(!row.rawName.includes(fVal)) return false; } else { if(!checkFilter(row[dataKey], fVal)) return false; } } return true; });
+            filteredData.forEach(r => { tNet += r.net; });
+            document.getElementById('rec-count').innerText = filteredData.length; document.getElementById('disp-tot-net').innerText = fmt(tNet);
+            const totalPages = Math.ceil(filteredData.length / recordsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = 1;
+            const startIndex = (currentPage - 1) * recordsPerPage; const endIndex = startIndex + recordsPerPage; const recordsToShow = filteredData.slice(startIndex, endIndex);
+
+            if(recordsToShow.length === 0) { tbody.innerHTML = `<tr><td colspan="20" class="p-8 text-center text-gray-400 font-bold">No records found matching filters</td></tr>`; updatePaginationUI(0, 0); return; }
+            const fragment = document.createDocumentFragment();
+            recordsToShow.forEach(r => { const tr = document.createElement('tr'); tr.className = "hover:bg-blue-50 border-b"; tr.innerHTML = `<td class="border p-2 text-center text-gray-500">${r.idx}</td><td class="border p-2 font-bold text-gray-800 leading-tight">${r.details}</td><td class="border p-2 text-center text-blue-600 font-bold">${r.age || '-'}</td><td class="border p-2 text-right text-gray-600">${fmt(r.basic)}</td><td class="border p-2 text-center text-xs font-bold text-gray-500 bg-gray-50">${r.daPct}%</td><td class="border p-2 text-right text-gray-500">${fmt(r.da)}</td><td class="border p-2 text-right text-gray-400">${fmt(r.ir)}</td><td class="border p-2 text-right text-gray-400">${fmt(r.med)}</td><td class="border p-2 text-center text-xs font-bold text-gray-500 bg-gray-50">${r.aqPct}%</td><td class="border p-2 text-right text-gray-400">${fmt(r.aq)}</td><td class="border p-2 text-right text-gray-400">${fmt(r.pol)}</td><td class="border p-2 text-right text-gray-400">${fmt(r.arr)}</td><td class="border p-2 text-right text-red-500 font-bold">${fmt(r.commuted)}</td><td class="border p-2 text-right font-bold bg-gray-50">${fmt(r.gross)}</td><td class="border p-2 text-right text-gray-500">${fmt(r.ehs)}</td><td class="border p-2 text-right text-gray-500">${fmt(r.it)}</td><td class="border p-2 text-right text-red-500">${fmt(r.excess)}</td><td class="border p-2 text-right font-bold text-red-700">${fmt(r.totDed)}</td><td class="border p-2 text-right font-bold bg-blue-50 text-blue-900 border-l-2 border-blue-200 text-sm">${fmt(r.net)}</td><td class="border p-2 text-center text-xs font-bold text-gray-600">${r.billId}</td>`; fragment.appendChild(tr); });
+            tbody.appendChild(fragment); updatePaginationUI(totalPages, filteredData.length);
+        }
+
+        function updatePaginationUI(totalPages, totalRecords) { const container = document.getElementById('pagination-controls'); if (!container) return; if (totalRecords === 0) { container.innerHTML = '<span class="text-gray-400 text-xs font-bold">No Data</span>'; return; } container.innerHTML = `<button onclick="changePage(-1)" class="w-6 h-6 flex items-center justify-center rounded bg-white border hover:bg-gray-100 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left text-[10px]"></i></button><span class="text-xs font-bold text-gray-600">Pg <input type="number" value="${currentPage}" min="1" max="${totalPages}" onchange="goToPage(this.value)" class="w-8 text-center border-b border-gray-400 focus:border-blue-600 outline-none bg-transparent"> / ${totalPages}</span><button onclick="changePage(1)" class="w-6 h-6 flex items-center justify-center rounded bg-white border hover:bg-gray-100 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right text-[10px]"></i></button>`; }
+        function changePage(direction) { currentPage += direction; renderBillTable(); }
+        function goToPage(pageNum) { pageNum = parseInt(pageNum); if(pageNum && pageNum > 0) { currentPage = pageNum; renderBillTable(); } }
+// --- AQ REPORT LOGIC (New Addition) ---
+
+// 1. Toggle Inputs based on Radio Button
+function toggleAQInputs() {
+    const mode = document.querySelector('input[name="aq-mode"]:checked').value;
+    if(mode === 'single') {
+        document.getElementById('aq-single-box').classList.remove('hidden');
+        document.getElementById('aq-range-box').classList.add('hidden');
+    } else {
+        document.getElementById('aq-single-box').classList.add('hidden');
+        document.getElementById('aq-range-box').classList.remove('hidden');
+    }
+}
+
+// 2. Populate Dropdowns (Call this manually or ensure populateMonthDropdowns calls it)
+// Note: Add these lines inside your existing "populateMonthDropdowns" function if possible.
+// If not, this helper will fill them when you click the tab.
+document.getElementById('tab8-btn').addEventListener('click', () => {
+    const fill = (id) => { 
+        const sel = document.getElementById(id); 
+        if(sel && sel.options.length === 0) { // Only fill if empty
+            const months = new Set(); 
+            pensionData.forEach(r => { if(r.MONTH && r.YEAR) months.add(`${String(r.MONTH).padStart(2,'0')}/${r.YEAR}`); }); 
+            const sorted = Array.from(months).sort((a,b) => { 
+                const [m1, y1] = a.split('/'); const [m2, y2] = b.split('/'); 
+                return (y2*100+parseInt(m2)) - (y1*100+parseInt(m1)); 
+            }); 
+            sorted.forEach(m => { sel.appendChild(new Option(m, m)); }); 
+        } 
+    };
+    fill('aq-month-single'); fill('aq-month-from'); fill('aq-month-to');
+});
+
+// 3. MAIN GENERATION FUNCTION (Updated: Auto-Calculate AQ%, Split ID/Name, Basic Pay Cols)
+function generateAQReport() {
+    const mode = document.querySelector('input[name="aq-mode"]:checked').value;
+    let monthsToProcess = [];
+
+    // Helper to Calculate % based on Amount & Basic (Round to nearest Integer)
+    const calcPct = (amt, basic) => {
+        if(!basic || !amt || basic == 0) return "0.00";
+        const val = (amt / basic) * 100;
+        return Math.round(val).toFixed(2); // Rounds 6.99 or 7.01 to "7.00"
+    };
+
+    // A. Determine which months to process
+    if (mode === 'single') {
+        const m = document.getElementById('aq-month-single').value;
+        if (!m) return alert("Select a month");
+        monthsToProcess.push(m);
+    } else {
+        const f = document.getElementById('aq-month-from').value;
+        const t = document.getElementById('aq-month-to').value;
+        if (!f || !t) return alert("Select From and To months");
+        
+        const [fm, fy] = f.split('/').map(Number);
+        const [tm, ty] = t.split('/').map(Number);
+        const startCode = fy * 100 + fm;
+        const endCode = ty * 100 + tm;
+
+        let currCode = startCode; 
+        while(currCode <= endCode) {
+            let y = Math.floor(currCode / 100);
+            let m = currCode % 100;
+            monthsToProcess.push(`${String(m).padStart(2,'0')}/${y}`);
+            m++; if(m > 12) { m = 1; y++; }
+            currCode = y * 100 + m;
+        }
+        monthsToProcess.sort((a,b) => {
+            const [m1, y1] = a.split('/').map(Number);
+            const [m2, y2] = b.split('/').map(Number);
+            return (y1*100+m1) - (y2*100+m2);
+        });
+    }
+
+    let reportRows = [];
+
+    // B. Process Each Month
+    monthsToProcess.forEach(currMonthStr => {
+        const [cM, cY] = currMonthStr.split('/').map(Number);
+        let pM = cM - 1, pY = cY;
+        if (pM === 0) { pM = 12; pY--; }
+        
+        const currRecs = pensionData.filter(r => parseInt(r.MONTH) == cM && parseInt(r.YEAR) == cY);
+        const prevRecs = pensionData.filter(r => parseInt(r.MONTH) == pM && parseInt(r.YEAR) == pY);
+        const prevMap = {};
+        prevRecs.forEach(r => { prevMap[String(r.CFMS_ID).trim()] = r; });
+
+        currRecs.forEach(curr => {
+            const id = String(curr.CFMS_ID).trim();
+            const prev = prevMap[id];
+            
+            const cVal = getVal(curr);
+            const cAge = parseInt(curr.AGE) || 0;
+            
+            // AUTO-CALCULATE CURRENT PERCENTAGE
+            const cAQPct = calcPct(cVal.aq, cVal.basic);
+            
+            let status = "";
+            let pAge = "-", pAQPct = "-", pAqAmt = 0, pBasic = 0;
+
+            let shouldAdd = false;
+
+            if (!prev) {
+                // New PPO: Show if AQ amount exists
+                if (cVal.aq > 0) {
+                    shouldAdd = true;
+                    status = "New PPO";
+                }
+            } else {
+                const pVal = getVal(prev);
+                pAge = parseInt(prev.AGE) || 0;
+                pAqAmt = pVal.aq;
+                pBasic = pVal.basic;
+                
+                // AUTO-CALCULATE PREVIOUS PERCENTAGE
+                pAQPct = calcPct(pAqAmt, pBasic);
+
+                // Add if AQ Amount changed
+                if (cVal.aq !== pAqAmt) {
+                    shouldAdd = true;
+                    status = "Changed";
+                }
+            }
+
+            if (shouldAdd) {
+                reportRows.push({
+                    month: currMonthStr,
+                    id: curr.CFMS_ID,
+                    name: curr.NAME,
+                    status: status,
+                    prev: { basic: pBasic, age: pAge, pct: pAQPct, amt: pAqAmt },
+                    curr: { basic: cVal.basic, age: cAge, pct: cAQPct, amt: cVal.aq }
+                });
+            }
+        });
+    });
+
+    // C. Render Table
+    const output = document.getElementById('aq-output-area');
+    if (reportRows.length === 0) {
+        output.innerHTML = `<div class="p-4 text-center text-gray-500 font-bold bg-white border rounded">No AQ changes found in selected period.</div>`;
+        return;
+    }
+
+    let h = `
+    <div class="bg-white shadow rounded overflow-hidden">
+        <div class="bg-indigo-50 p-3 border-b border-indigo-100 flex justify-between items-center">
+            <h4 class="font-bold text-indigo-900">AQ Analysis Report (Auto-Calculated %)</h4>
+            <div class="flex gap-2">
+                <span class="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded font-bold">${reportRows.length} Records</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+        <table class="w-full text-xs border-collapse text-left whitespace-nowrap">
+            <thead>
+                <tr class="bg-gray-700 text-white uppercase font-bold text-[11px]">
+                    <th rowspan="2" class="p-2 border border-gray-600 text-center w-10">S.No</th>
+                    <th rowspan="2" class="p-2 border border-gray-600 text-center w-20">Month</th>
+                    <th rowspan="2" class="p-2 border border-gray-600 text-center w-24">CFMS ID</th>
+                    <th rowspan="2" class="p-2 border border-gray-600 text-left min-w-[150px]">Pensioner Name</th>
+                    <th colspan="4" class="p-1 border border-gray-600 text-center bg-gray-600 border-b-white">PREVIOUS MONTH</th>
+                    <th colspan="4" class="p-1 border border-gray-600 text-center bg-indigo-900 border-b-white">CURRENT MONTH</th>
+                    <th rowspan="2" class="p-2 border border-gray-600 text-center w-24 bg-gray-800">Diff</th>
+                </tr>
+                <tr class="bg-gray-100 text-gray-800 font-bold text-[10px] uppercase">
+                    <th class="p-1 border text-right w-20 bg-gray-200">Basic</th>
+                    <th class="p-1 border text-center w-10 bg-gray-200">Age</th>
+                    <th class="p-1 border text-center w-10 bg-gray-200">%</th>
+                    <th class="p-1 border text-right w-20 bg-gray-200 border-r-2 border-gray-400">Amt</th>
+                    
+                    <th class="p-1 border text-right w-20 bg-indigo-100">Basic</th>
+                    <th class="p-1 border text-center w-10 bg-indigo-100">Age</th>
+                    <th class="p-1 border text-center w-10 bg-indigo-100">%</th>
+                    <th class="p-1 border text-right w-20 bg-indigo-100">Amt</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-300">
+    `;
+
+    reportRows.forEach((row, idx) => {
+        const isNew = row.status === "New PPO";
+        const diff = row.curr.amt - row.prev.amt;
+        const sign = diff > 0 ? '+' : '';
+        const diffClass = diff > 0 ? 'text-green-700' : (diff < 0 ? 'text-red-600' : 'text-gray-400');
+        
+        // Highlight logic
+        const basicChanged = !isNew && (row.curr.basic !== row.prev.basic);
+        const basicClass = basicChanged ? "font-bold text-blue-700 bg-yellow-50" : "text-gray-600";
+        
+        const ageChanged = !isNew && (row.curr.age !== row.prev.age);
+        const ageClass = ageChanged ? "font-bold text-blue-700 bg-yellow-50" : "";
+
+        h += `
+            <tr class="hover:bg-indigo-50 border-b border-gray-200">
+                <td class="p-2 border text-center text-gray-500">${idx + 1}</td>
+                <td class="p-2 border text-center font-bold text-gray-700">${row.month}</td>
+                <td class="p-2 border text-center font-mono font-bold text-blue-900">${row.id}</td>
+                <td class="p-2 border font-semibold text-gray-800 truncate max-w-[200px]" title="${row.name}">
+                    ${row.name}
+                    ${isNew ? '<span class="ml-2 text-[9px] bg-green-100 text-green-800 px-1 rounded border border-green-200">NEW</span>' : ''}
+                </td>
+                
+                <td class="p-2 border text-right text-gray-500 bg-gray-50 font-mono">${isNew ? '-' : fmt(row.prev.basic)}</td>
+                <td class="p-2 border text-center text-gray-500 bg-gray-50">${row.prev.age}</td>
+                <td class="p-2 border text-center text-gray-500 bg-gray-50">${row.prev.pct}%</td>
+                <td class="p-2 border text-right text-gray-500 bg-gray-50 font-mono border-r-2 border-gray-300">${fmt(row.prev.amt)}</td>
+
+                <td class="p-2 border text-right font-mono bg-white ${basicClass}">${fmt(row.curr.basic)}</td>
+                <td class="p-2 border text-center bg-white ${ageClass}">${row.curr.age}</td>
+                <td class="p-2 border text-center bg-white font-bold">${row.curr.pct}%</td>
+                <td class="p-2 border text-right font-bold text-indigo-700 bg-indigo-50 font-mono">${fmt(row.curr.amt)}</td>
+                
+                <td class="p-2 border text-center font-bold bg-white ${diffClass}">
+                    ${sign}${fmt(diff)}
+                </td>
+            </tr>
+        `;
+    });
+
+    h += `</tbody></table></div></div>`;
+    output.innerHTML = h;
+}
+function generateMasterData() {
+    const cont = document.getElementById('master-history-container');
+    if (!cont) return;
+
+    if (!currentRecords || currentRecords.length === 0) {
+        cont.innerHTML = `<div class="text-center py-10 text-gray-400 font-bold"><i class="fas fa-user-slash text-4xl mb-3"></i><br>Please Search & Select a Pensioner first</div>`;
+        return;
+    }
+
+    const recs = [...currentRecords].sort((a,b) => (parseInt(a.YEAR)*100+parseInt(a.MONTH)) - (parseInt(b.YEAR)*100+parseInt(b.MONTH)));
+    
+    const allFields = [
+        { k:'basic', l:'Basic Pay', s:'BP', type:'amt' },
+        { k:'da', l:'DR Amount', s:'DR', type:'amt' },
+        { k:'ir', l:'IR', s:'IR', type:'amt' },
+        { k:'med', l:'Medical', s:'MED', type:'amt' },
+        { k:'aq', l:'AQ Amount', s:'AQ', type:'amt' },
+        { k:'arr', l:'Arrears', s:'ARR', type:'amt' },
+        { k:'commuted', l:'CVP', s:'CVP', type:'amt', isDed:true },
+        { k:'ehs', l:'EHS', s:'EHS', type:'amt', isDed:true },
+        { k:'it', l:'IT', s:'IT', type:'amt', isDed:true },
+        { k:'excess', l:'Excess', s:'EXC', type:'amt', isDed:true },
+        { k:'net', l:'NET PAY', s:'NET', type:'amt', hl:true, bg:'bg-blue-50' }
+    ];
+
+    let html = `<div class="p-2 w-full"><div class="hist-grid">`;
+
+    // 1. మిగిలిన పెన్షన్ ఫీల్డ్స్ కార్డులు (Gross, Deduction, Police Seva లేకుండా)
+    allFields.forEach(f => {
+        if (f.k === 'net') return;
+
+        let rows = '';
+        let changes = 0;
+        let prevVal = null;
+
+        recs.forEach((r, idx) => {
+            const vObj = getVal(r);
+            let currVal = parseFloat(vObj[f.k]) || 0;
+            let isChange = (idx === 0) || (currVal !== prevVal);
+
+            if(isChange) {
+                changes++;
+                const monthStr = `${String(r.MONTH).padStart(2,'0')}/${r.YEAR}`;
+                let diffHtml = '';
+                if(idx > 0) {
+                    const diff = currVal - prevVal;
+                    const sign = diff > 0 ? '+' : '';
+                    const color = diff > 0 ? (f.isDed ? 'text-red-600' : 'text-green-600') : (f.isDed ? 'text-green-600' : 'text-red-600');
+                    diffHtml = `<span class="ml-1 text-[11px] font-bold ${color}">(${sign}${fmt(diff)})</span>`;
+                }
+                rows += `<div class="hist-row"><div class="hist-date">${monthStr}</div><div class="hist-val ${f.isDed?'text-red-700':''}">₹ ${fmt(currVal)} ${diffHtml}</div></div>`;
+            }
+            prevVal = currVal;
+        });
+
+        html += `<div class="hist-card"><div class="hist-head ${f.bg || 'bg-white'}"><span class="${f.isDed ? 'text-red-800' : 'text-blue-900'} font-bold uppercase text-[10px]">${f.l}</span><span class="badge-count">${changes} Changes</span></div><div class="hist-body">${rows}</div></div>`;
+    });
+
+    // 2. NET PAY కార్డు (Centered and Reduced Font Size)
+    let netRows = '';
+    let netChanges = 0;
+    let prevNetVal = null;
+
+    recs.forEach((r, idx) => {
+        const vObj = getVal(r);
+        let currVal = parseFloat(vObj.net) || 0;
+        let isChange = (idx === 0) || (currVal !== prevNetVal);
+
+        if(isChange) {
+            netChanges++;
+            const monthStr = `${String(r.MONTH).padStart(2,'0')}/${r.YEAR}`;
+            let diffHtml = '';
+            let breakdownStr = '';
+            
+            if(idx > 0) {
+                const diff = currVal - prevNetVal;
+                const sign = diff > 0 ? '+' : '';
+                diffHtml = `<span class="text-[12px] font-bold ${diff > 0 ? 'text-green-600' : 'text-red-600'}">(${sign}${fmt(diff)})</span>`;
+
+                let pObj = getVal(recs[idx-1]);
+                let details = [];
+                allFields.forEach(sub => {
+                    if(['net','gross','totDed'].includes(sub.k)) return;
+                    let subDiff = (parseFloat(vObj[sub.k])||0) - (parseFloat(pObj[sub.k])||0);
+                    if(Math.abs(subDiff) >= 1) {
+                        details.push(`${sub.s}: ${subDiff > 0 ? '+' : ''}${Math.round(subDiff)}`);
+                    }
+                });
+                if(details.length > 0) {
+                    breakdownStr = `<span class="ml-4 text-[13px] text-black font-bold font-mono bg-white px-3 py-1 rounded border-2 border-gray-400 shadow-sm">[ ${details.join(' | ')} ]</span>`;
+                }
+            }
+
+            netRows += `
+                <div class="flex items-center justify-center p-3 border-b border-gray-200 hover:bg-blue-50">
+                    <div class="w-20 text-gray-600 font-bold text-sm text-center">${monthStr}</div>
+                    <div class="text-blue-900 font-black text-lg ml-6">₹ ${fmt(currVal)}</div>
+                    <div class="flex-shrink-0 ml-2">${diffHtml}</div>
+                    <div class="flex-grow text-right">${breakdownStr}</div>
+                </div>`;
+        }
+        prevNetVal = currVal;
+    });
+
+    // MX-AUTO ద్వారా కార్డు సెంటర్ చేయబడింది
+    html += `
+        <div class="hist-card col-span-full mt-8 shadow-2xl border-2 border-blue-400 mx-auto" style="max-width: 1000px; width: 100%;">
+            <div class="hist-head bg-blue-100 flex justify-between items-center p-3">
+                <span class="text-blue-900 font-black uppercase text-sm">NET PAY (CENTERED VIEW)</span>
+                <span class="badge-count bg-blue-200 text-blue-900">${netChanges} Changes</span>
+            </div>
+            <div class="hist-body">${netRows}</div>
+        </div>
+    </div></div>`;
+    
+    cont.innerHTML = html;
+}
+/* ==================================================
+   FAMILY PENSION LOGIC - V10.0 (FINAL MATCH)
+   1. Page 1: Matches Screenshot 129 Exact Wording.
+   2. Page 2: Detailed Annexure (LTA/Excess).
+   3. Auto-Fill: Fetches Previous Month Data for LTA.
+   ================================================== */
+
+// --- CONFIG & GLOBALS ---
+const FP_RULES = {
+    "1999": { da: 0, fitment: 0, min: 1275 },
+    "2005": { da: 30.266, fitment: 16, min: 1925 },
+    "2010": { da: 42.392, fitment: 39, min: 3350 },
+    "2015": { da: 63.344, fitment: 43, min: 6500 }, 
+    "2022": { da: 33.67, fitment: 23, min: 10000 } 
+};
+
+let SETTLEMENT_DATA = null; 
+let fp_calc_data = []; 
+let activeSettlementTab = 'LTA';
+
+// --- HELPER FUNCTIONS ---
+function fmtDate(d) { if(!d) return "____"; let date=new Date(d); return `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`; }
+function addDays(d, n) { let r=new Date(d); r.setDate(r.getDate()+n); return r.toISOString().split('T')[0]; }
+function getNextPRCBasic(oldBasic, ruleObj) {
+    if(!oldBasic || oldBasic == 0) return 0;
+    let daVal = oldBasic * (ruleObj.da / 100);
+    let fitVal = oldBasic * (ruleObj.fitment / 100);
+    let newBasic = Math.ceil(oldBasic + daVal + fitVal);
+    if(newBasic < ruleObj.min) newBasic = ruleObj.min;
+    return newBasic;
+}
+
+// --- TAB SWITCHER ---
+function switchSettlementTab(tab) {
+    activeSettlementTab = tab;
+    document.getElementById('content-tab-lta').classList.toggle('hidden', tab !== 'LTA');
+    document.getElementById('content-tab-fp').classList.toggle('hidden', tab !== 'FP');
+    document.getElementById('btn-tab-lta').className = tab === 'LTA' ? "flex-1 py-2 font-bold text-sm bg-white text-blue-800 border-t-2 border-blue-600 rounded-tl-lg shadow-sm" : "flex-1 py-2 font-bold text-sm text-gray-500 hover:bg-gray-50";
+    document.getElementById('btn-tab-fp').className = tab === 'FP' ? "flex-1 py-2 font-bold text-sm bg-white text-blue-800 border-t-2 border-blue-600 rounded-tr-lg shadow-sm" : "flex-1 py-2 font-bold text-sm text-gray-500 hover:bg-gray-50";
+}
+
+// --- STEP 1: FIXATION HISTORY ---
+function previewFixationTable() {
+    let startRps = document.getElementById('fp_startRps').value;
+    let efpBase  = parseFloat(document.getElementById('fp_efpBase').value)||0;
+    let nfpBase  = parseFloat(document.getElementById('fp_nfpBase').value)||0;
+
+    let prcOrder = ["1999", "2005", "2010", "2015", "2022"];
+    let startIndex = prcOrder.indexOf(startRps);
+    let efpCurr = efpBase;
+    let nfpCurr = nfpBase;
+    fp_calc_data = []; 
+    let html = "";
+
+    for(let i = startIndex; i < prcOrder.length; i++) {
+        let year = prcOrder[i];
+        if(i > startIndex) {
+            let rules = FP_RULES[year];
+            if(rules) {
+                efpCurr = getNextPRCBasic(efpCurr, rules);
+                nfpCurr = getNextPRCBasic(nfpCurr, rules);
+            }
+        }
+        html += `<tr><td class="p-2 border bg-gray-100 font-bold text-center text-xs">RPS ${year}</td><td class="p-2 border"><input type="number" id="edit_efp_${year}" value="${efpCurr}" class="w-full border p-1 font-bold text-center text-green-700"></td><td class="p-2 border"><input type="number" id="edit_nfp_${year}" value="${nfpCurr}" class="w-full border p-1 font-bold text-center text-blue-700"></td></tr>`;
+        fp_calc_data.push(year);
+    }
+    
+    document.getElementById('fp_editTableBody').innerHTML = `<table class="w-full text-sm border-collapse border"><thead><tr class="bg-gray-200"><th>Year</th><th>EFP Amount</th><th>NFP Amount</th></tr></thead><tbody>${html}</tbody></table>`;
+    document.getElementById('fp_editTableArea').classList.remove('hidden');
+}
+
+// --- STEP 2: LTA / EXCESS CALCULATION (WITH AUTO FILL) ---
+function calculateSettlementV10() {
+    let dod = document.getElementById('fp_dod').value;
+    if(!dod) return alert("Please enter Date of Death (DOD).");
+
+    let dDate = new Date(dod);
+    let dMonth = dDate.getMonth() + 1;
+    let dYear = dDate.getFullYear();
+    let daysInMonth = new Date(dYear, dMonth, 0).getDate();
+    let daysLived = dDate.getDate(); 
+
+    // A. CHECK FOR EXCESS
+    let excessRecs = [];
+    currentRecords.forEach(r => {
+        let rMonth = parseInt(r.MONTH);
+        let rYear = parseInt(r.YEAR);
+        if (rYear > dYear || (rYear === dYear && rMonth >= dMonth)) {
+            excessRecs.push(r);
+        }
+    });
+
+    let excessArea = document.getElementById('excess_display_area');
+    let ltaArea = document.getElementById('lta_input_area');
+
+    if(excessRecs.length > 0) {
+        // --- EXCESS CASE ---
+        excessArea.classList.remove('hidden');
+        ltaArea.classList.add('hidden');
+
+        let totalPaid = 0;
+        let listHtml = `<table class="w-full text-xs border border-collapse mb-2">
+            <tr class="bg-gray-100 font-bold"><th>Month</th><th>Bill ID</th><th>Amount</th></tr>`;
+        
+        excessRecs.forEach(r => {
+            let val = getVal(r); 
+            let amt = parseFloat(val.net)||0;
+            totalPaid += amt;
+            listHtml += `<tr><td class="border p-1 text-center">${r.MONTH}/${r.YEAR}</td><td class="border p-1 text-center">${val.bill}</td><td class="border p-1 text-center font-bold">Rs. ${amt}</td></tr>`;
+        });
+        
+        // Calculate Admissible for Lived Days
+        let firstRecVal = getVal(excessRecs[0]);
+        let firstRecAmt = parseFloat(firstRecVal.net)||0;
+        let admissible = Math.round((firstRecAmt / daysInMonth) * daysLived);
+        
+        listHtml += `<tr class="bg-gray-50"><td colspan="2" class="border p-1 text-right font-bold">Total Paid:</td><td class="border p-1 text-center font-bold">Rs. ${totalPaid}</td></tr>`;
+        listHtml += `<tr class="bg-green-50"><td colspan="2" class="border p-1 text-right font-bold text-green-700">Less Admissible (${daysLived} Days):</td><td class="border p-1 text-center font-bold text-green-700">(-) Rs. ${admissible}</td></tr>`;
+        listHtml += `</table>`;
+
+        document.getElementById('excess_list_html').innerHTML = listHtml;
+        let netRec = totalPaid - admissible;
+        document.getElementById('excess_final_amt').innerText = `₹ ${netRec}`;
+
+        SETTLEMENT_DATA = { type: 'EXCESS', totalPaid, admissible, netRec, excessRecs, daysLived };
+
+    } else {
+        // --- LTA CASE ---
+        excessArea.classList.add('hidden');
+        ltaArea.classList.remove('hidden');
+        document.getElementById('lta_days_lived').innerText = daysLived;
+
+        // AUTO FILL: Find Previous Month Record
+        let pMonth = dMonth - 1;
+        let pYear = dYear;
+        if(pMonth === 0) { pMonth = 12; pYear = dYear - 1; }
+
+        let prevRec = currentRecords.find(r => parseInt(r.MONTH) == pMonth && parseInt(r.YEAR) == pYear);
+        
+        // Only auto-fill if inputs are empty
+        if(prevRec && document.getElementById('lta_bp').value === "") {
+            let v = getVal(prevRec);
+            document.getElementById('lta_bp').value = v.basic || 0;
+            document.getElementById('lta_da').value = v.da || 0;
+            document.getElementById('lta_ir').value = v.ir || 0;
+            document.getElementById('lta_ma').value = v.med || 0;
+            document.getElementById('lta_aq').value = v.aq || 0;
+            document.getElementById('lta_cvp').value = v.commuted || 0;
+        }
+
+        // Logic
+        let calculateLTA = function() {
+            let bp = parseFloat(document.getElementById('lta_bp').value)||0;
+            let da = parseFloat(document.getElementById('lta_da').value)||0;
+            let ir = parseFloat(document.getElementById('lta_ir').value)||0;
+            let ma = parseFloat(document.getElementById('lta_ma').value)||0;
+            let aq = parseFloat(document.getElementById('lta_aq').value)||0;
+            let cvp = parseFloat(document.getElementById('lta_cvp').value)||0;
+
+            let fullGross = bp + da + ir + ma + aq;
+            document.getElementById('lta_gross').value = fullGross;
+
+            let p_bp = Math.round((bp / daysInMonth) * daysLived);
+            let p_da = Math.round((da / daysInMonth) * daysLived);
+            let p_ir = Math.round((ir / daysInMonth) * daysLived);
+            let p_ma = Math.round((ma / daysInMonth) * daysLived);
+            let p_aq = Math.round((aq / daysInMonth) * daysLived);
+            let p_cvp = Math.round((cvp / daysInMonth) * daysLived);
+            let p_gross = p_bp + p_da + p_ir + p_ma + p_aq;
+
+            document.getElementById('pro_bp').value = p_bp;
+            document.getElementById('pro_da').value = p_da;
+            document.getElementById('pro_ir').value = p_ir;
+            document.getElementById('pro_ma').value = p_ma;
+            document.getElementById('pro_aq').value = p_aq;
+            document.getElementById('pro_cvp').value = p_cvp;
+            document.getElementById('pro_gross').value = p_gross;
+
+            let netLTA = p_gross - p_cvp;
+            document.getElementById('lta_final_amt').innerText = `₹ ${netLTA}`;
+            
+            SETTLEMENT_DATA = { 
+                type: 'LTA', daysLived, netLTA, 
+                full: {bp,da,ir,ma,aq,cvp,gross:fullGross},
+                pro: {bp:p_bp, da:p_da, ir:p_ir, ma:p_ma, aq:p_aq, cvp:p_cvp, gross:p_gross}
+            };
+        };
+
+        ['lta_bp', 'lta_da', 'lta_ir', 'lta_ma', 'lta_aq', 'lta_cvp'].forEach(id => {
+            document.getElementById(id).onkeyup = calculateLTA;
+            document.getElementById(id).onchange = calculateLTA; 
+        });
+        calculateLTA(); // Trigger
+    }
+}
+
+function generateFinalProceedingsV10() {
+    // 1. INPUTS & VALIDATION
+    let spName = document.getElementById('fp_spName').value;
+    let ppo = document.getElementById('fp_ppo').value;
+    let cfmsId = document.getElementById('fp_cfmsId').value;
+    let dod = document.getElementById('fp_dod').value;
+    let benName = document.getElementById('fp_benName').value;
+    let relation = document.getElementById('fp_relation').value;
+    let efpEndDate = document.getElementById('fp_efpEndDate').value;
+
+    if(!SETTLEMENT_DATA) return alert("Please Calculate Tab 1 (LTA/Excess) first.");
+    if(!FP_ROWS_DATA || FP_ROWS_DATA.length === 0) return alert("Please Calculate Tab 2 (FP Arrears) first. Click 'SHOW TABLE' in Arrears Tab.");
+
+    // --- PAGE 1 GENERATION (PROCEEDINGS) ---
+    
+    // Dates Logic
+    let commenceDate = new Date(dod); commenceDate.setDate(commenceDate.getDate() + 1);
+    let cDateStr = commenceDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+    let efpEndObj = new Date(efpEndDate);
+    let efpEndStr = efpEndObj.toLocaleDateString('en-GB').replace(/\//g, '-');
+    let nfpStartDate = new Date(efpEndObj); nfpStartDate.setDate(nfpStartDate.getDate() + 1);
+    let nfpStartStr = nfpStartDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+    
+    let isEfp = (commenceDate <= efpEndObj);
+
+    // Fixation History Table
+    let fixTableHtml = `<table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center; border:1px solid #000; margin-top:5px;">
+        <tr style="background:#f0f0f0; font-weight:bold;">
+            <th style="border:1px solid #000; padding:5px;">RPS Year</th>
+            <th style="border:1px solid #000; padding:5px;">EFP Amount</th>
+            <th style="border:1px solid #000; padding:5px;">NFP Amount</th>
+        </tr>`;
+    
+    let lastEFP = 0, lastNFP = 0;
+    if(fp_calc_data && fp_calc_data.length > 0) {
+        fp_calc_data.forEach(year => {
+            let e = document.getElementById(`edit_efp_${year}`)?.value || '-';
+            let n = document.getElementById(`edit_nfp_${year}`)?.value || '-';
+            lastEFP = e; lastNFP = n;
+            fixTableHtml += `<tr>
+                <td style="border:1px solid #000; padding:5px;">RPS ${year}</td>
+                <td style="border:1px solid #000; padding:5px; font-weight:bold;">${e}</td>
+                <td style="border:1px solid #000; padding:5px; font-weight:bold;">${n}</td>
+            </tr>`;
+        });
+    }
+    fixTableHtml += `</table>`;
+
+    let page1_html = `
+    <div style="font-family:Arial, sans-serif; line-height:1.5; color:#000; min-height:950px;">
+        <center>
+            <h4 style="margin:0; text-transform:uppercase;">PROCEEDINGS OF THE SUB TREASURY OFFICER</h4>
+            <span style="font-size:11px;">(Generated via Pension Master)</span>
+        </center>
+        <br>
+        <div style="text-align:justify;">
+            <b>Sub:</b> Family Pension – Sanction of Family Pension to <b>Sri/Smt ${benName}</b>, ${relation} of Late <b>${spName}</b> (PPO No: <b>${ppo}</b>, CFMS ID: <b>${cfmsId}</b>) – Expired on <b>${fmtDate(dod)}</b> – Orders Issued.<br>
+            <b>Ref:</b> 1. Death Certificate of the Service Pensioner.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. Application submitted by the beneficiary.
+        </div>
+        
+        <div style="margin-top:10px;"><b><u>ORDER:</u></b></div>
+        <p style="text-align:justify; text-indent:50px; margin-top:5px;">
+            Consequent on the demise of the Service Pensioner <b>Sri/Smt. ${spName}</b> (PPO No: <b>${ppo}</b>, CFMS ID: <b>${cfmsId}</b>), who expired on <b>${fmtDate(dod)}</b>, sanction is hereby accorded for the payment of Family Pension to <b>Sri/Smt. ${benName}</b> (Relation: <b>${relation}</b>).
+        </p>
+
+        <div style="font-weight:bold; margin-bottom:5px;">I. Time-to-Time Fixation (History):</div>
+        ${fixTableHtml}
+
+        <br>
+        <div style="border:1px solid #000; padding:15px; background-color:#fff8e1;">
+            <div style="font-weight:bold; margin-bottom:5px;">II. Final Sanction Details:</div>
+            <div style="font-size:11px; font-style:italic; color:#666; margin-bottom:5px;">Note: EFP period expired before commencement date. Only NFP is applicable.</div>
+            
+            ${isEfp ? `
+            <div style="margin-bottom:10px;">
+                <b>Enhanced Family Pension (EFP):</b><br>
+                Amount: Rs. <b>${lastEFP}/-</b> pm.<br>
+                Validity: From <b>${cDateStr}</b> To <b>${efpEndStr}</b>.
+            </div>` : ''}
+
+            <div>
+                <b>Normal Family Pension (NFP):</b><br>
+                Amount: Rs. <b>${lastNFP}/-</b> pm.<br>
+                Validity: From <b>${isEfp ? nfpStartStr : cDateStr}</b> onwards.
+            </div>
+        </div>
+
+        <br>
+        <div style="border:2px solid #000; padding:15px; margin-top:10px;">
+            <b>CERTIFICATE OF VERIFICATION:</b><br>
+            <p style="text-align:justify; margin-top:5px; font-size:13px;">
+            The application submitted by the Family Pensioner along with the <b>Death Certificate and Bank Account details</b> have been thoroughly verified with reference to the original Service Pensioner's PPO (No: <b>${ppo}</b>) and the records available in this office. The details furnished are found to be correct and tally with the departmental records.
+            </p>
+        </div>
+        
+        <br><br><br>
+        <div style="text-align:right; font-weight:bold;">
+            Sub Treasury Officer<br>
+            (Signature & Stamp)
+        </div>
+    </div>
+    `;
+
+    // --- PAGE BREAK ---
+    let pageBreak = `<div style="page-break-before: always;"></div>`;
+
+    // --- PAGE 2 GENERATION (ANNEXURE) ---
+    
+    // A. Arrears Table
+    let totalArrears = FP_ROWS_DATA.reduce((sum, r) => sum + r.net, 0);
+    let uptoDate = FP_ROWS_DATA[FP_ROWS_DATA.length-1].to;
+    let arrRows = "";
+    FP_ROWS_DATA.forEach(r => {
+        arrRows += `<tr>
+            <td style="border:1px solid #999; padding:4px;">${r.from} to ${r.to}</td>
+            <td style="border:1px solid #999; padding:4px;">${r.basic}</td>
+            <td style="border:1px solid #999; padding:4px;">${r.aq}</td>
+            <td style="border:1px solid #999; padding:4px;">${r.drAmt} <span style="font-size:9px; color:#555;">(${r.drRate}%)</span></td>
+            <td style="border:1px solid #999; padding:4px;">${r.irAmt} <span style="font-size:9px; color:#555;">(${r.irRate}%)</span></td>
+            <td style="border:1px solid #999; padding:4px;">${r.med}</td>
+            <td style="border:1px solid #999; padding:4px;">-${r.ehs}</td>
+            <td style="border:1px solid #999; padding:4px; font-weight:bold;">${r.net}</td>
+        </tr>`;
+    });
+
+    let arrearsSection = `
+        <div style="margin-bottom: 20px;">
+            <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">I. Statement of Family Pension Arrears (Up to ${uptoDate}):</div>
+            <table style="width:100%; border-collapse:collapse; text-align:center; font-size:11px; border:1px solid #000;">
+                <tr style="background:#eee; font-weight:bold;">
+                    <th style="border:1px solid #999; padding:5px;">Period</th>
+                    <th style="border:1px solid #999; padding:5px;">Basic</th>
+                    <th style="border:1px solid #999; padding:5px;">AQ</th>
+                    <th style="border:1px solid #999; padding:5px;">DR</th>
+                    <th style="border:1px solid #999; padding:5px;">IR</th>
+                    <th style="border:1px solid #999; padding:5px;">Med</th>
+                    <th style="border:1px solid #999; padding:5px;">EHS</th>
+                    <th style="border:1px solid #999; padding:5px;">Net</th>
+                </tr>
+                ${arrRows}
+                <tr style="font-weight:bold; background:#eef;">
+                    <td colspan="7" style="text-align:right; padding:6px; border:1px solid #999;">Total FP Arrears (A):</td>
+                    <td style="border:1px solid #999; padding:6px;">${totalArrears}</td>
+                </tr>
+            </table>
+        </div>`;
+
+    // B. LTA Section (Detailed Table)
+    let ltaSection = "";
+    let ltaAmount = 0;
+    if(SETTLEMENT_DATA.netLTA > 0) {
+        ltaAmount = SETTLEMENT_DATA.netLTA;
+        // Detailed LTA Table as per Screenshot 162
+        ltaSection = `
+        <div style="margin-bottom: 20px;">
+            <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">II. LTA Calculation Details:</div>
+            <table style="width:100%; border-collapse:collapse; text-align:center; font-size:11px; border:1px solid #000;">
+                <tr style="background:#eee; font-weight:bold;">
+                    <th style="border:1px solid #999; padding:5px;">Component</th>
+                    <th style="border:1px solid #999; padding:5px;">Full Month Rate</th>
+                    <th style="border:1px solid #999; padding:5px;">Pro-rata (${SETTLEMENT_DATA.daysLived} Days)</th>
+                </tr>
+                <tr><td style="border:1px solid #999;">Basic Pay</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.bp}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.bp}</td></tr>
+                <tr><td style="border:1px solid #999;">DR</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.da}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.da}</td></tr>
+                <tr><td style="border:1px solid #999;">IR</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.ir}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.ir}</td></tr>
+                <tr><td style="border:1px solid #999;">Medical</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.ma}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.ma}</td></tr>
+                <tr><td style="border:1px solid #999;">AQ</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.aq}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.aq}</td></tr>
+                <tr style="font-weight:bold; background:#f9f9f9;"><td style="border:1px solid #999;">GROSS</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.full.gross}</td><td style="border:1px solid #999;">${SETTLEMENT_DATA.pro.gross}</td></tr>
+                <tr style="color:red;"><td style="border:1px solid #999;">Less CVP</td><td style="border:1px solid #999;">(-) ${SETTLEMENT_DATA.full.cvp}</td><td style="border:1px solid #999;">(-) ${SETTLEMENT_DATA.pro.cvp}</td></tr>
+                <tr style="font-weight:bold; background:#e8f5e9;"><td style="border:1px solid #999;">NET LTA</td><td></td><td style="border:1px solid #999;">(+) Rs. ${ltaAmount}</td></tr>
+            </table>
+        </div>`;
+    }
+
+    // C. Excess Section
+    let excessSection = "";
+    let excessAmount = 0;
+    if(SETTLEMENT_DATA.type === 'EXCESS') {
+        excessAmount = SETTLEMENT_DATA.netRec;
+        let eRows = "";
+        SETTLEMENT_DATA.excessRecs.forEach(r => {
+             eRows += `<tr><td style="border:1px solid #ccc; padding:4px;">${r.MONTH}/${r.YEAR}</td><td style="border:1px solid #ccc; padding:4px;">Rs. ${getVal(r).net}</td></tr>`;
+        });
+        excessSection = `
+        <div style="margin-bottom: 20px;">
+            <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">III. Recovery of Excess Payment:</div>
+            <table style="width:60%; border-collapse:collapse; text-align:center; font-size:11px; border:1px solid #ccc; margin-left:15px;">
+                <tr style="background:#f0f0f0; font-weight:bold;"><th style="border:1px solid #ccc; padding:4px;">Month</th><th style="border:1px solid #ccc; padding:4px;">Amount Paid</th></tr>
+                ${eRows}
+            </table>
+            <p style="font-size:12px; margin:5px 0 0 15px; color:#b91c1c;"><b>Total Recoverable Amount (C): Rs. ${excessAmount}</b></p>
+        </div>`;
+    }
+
+    // D. Abstract Box
+    let finalNet = (totalArrears + ltaAmount) - excessAmount;
+    let abstractSection = `
+    <div style="border:2px solid #000; padding:0; margin-top:30px; background:#fff;">
+        <div style="text-align:center; padding:5px; border-bottom:1px solid #eee;">
+            <h4 style="margin:0; text-decoration:underline; text-transform:uppercase;">ABSTRACT OF SETTLEMENT</h4>
+        </div>
+        <table style="width:100%; font-size:13px; line-height:2.0; padding:15px;">
+            <tr><td width="70%">1. Total Family Pension Arrears (A)</td><td style="text-align:right; font-weight:bold;">Rs. ${totalArrears}</td></tr>
+            <tr><td>2. LTA Amount (B)</td><td style="text-align:right; font-weight:bold;">(+) Rs. ${ltaAmount}</td></tr>
+            <tr><td>3. Less: Excess Paid Recovery (C)</td><td style="text-align:right; color:red; font-weight:bold;">(-) Rs. ${excessAmount}</td></tr>
+        </table>
+        <div style="background:#eee; padding:10px 15px; border-top:2px solid #000; border-bottom:2px solid #000;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:bold; font-size:14px;">NET PAYABLE AMOUNT</span>
+                <span style="font-weight:bold; font-size:16px;">Rs. ${finalNet}</span>
+            </div>
+        </div>
+        <p style="text-align:center; font-size:12px; font-style:italic; padding:10px; margin:0;">(Rupees ${convertNumberToWords(finalNet)} Only)</p>
+    </div>`;
+
+    let page2_html = `
+    <div style="font-family:Arial, sans-serif; padding:10px; color:#000;">
+        <center><h3 style="text-decoration:underline; margin-bottom:20px; text-transform:uppercase;">ANNEXURE: SETTLEMENT OF ACCOUNTS</h3></center>
+        <div style="font-size:13px; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:10px;">
+            <b>Beneficiary Name:</b> <span style="text-transform:uppercase; font-size:14px;">${benName}</span><br>
+            <span style="color:#555; font-size:12px;">(Pensioner: Late ${spName}, PPO: ${ppo})</span>
+        </div>
+        ${arrearsSection}
+        ${ltaSection}
+        ${excessSection}
+        ${abstractSection}
+        <br><br><br>
+        <div style="text-align:right; font-weight:bold; font-size:14px;">Sub Treasury Officer</div>
+    </div>`;
+
+    // COMBINE
+    let finalHtml = `<div style="max-width:850px; margin:0 auto;">${page1_html}${pageBreak}${page2_html}</div>`;
+
+    // OUTPUT
+    showOut(finalHtml);howOut(finalHtml);
+}
+/* ==========================================================
+   FAMILY PENSION ARREARS LOGIC - V12 (FINAL)
+   Features: 
+   1. Live Editing of DR% & IR% in the table.
+   2. Logic: DR on (Basic + AQ). IR on Basic (Pro-rata).
+   3. AQ & EHS are Full Month. Basic, DR, IR, Med are Pro-rata.
+   4. New Proceedings Order & Abstract.
+   ========================================================== */
+
+let FP_ROWS_DATA = []; // Holds the state of the table
+
+// 1. INITIAL CALCULATE FUNCTION
+function calculateFPArrearsV12() {
+    let dod = document.getElementById('fp_dod').value;
+    let uptoDate = document.getElementById('fp_arr_uptoDate').value;
+    let efpEndDate = document.getElementById('fp_efpEndDate').value;
+    let benDob = document.getElementById('fp_benDob').value;
+    
+    // Default Inputs
+    let defDA = parseFloat(document.getElementById('fp_arr_daRate').value) || 33.67;
+    let defIR = parseFloat(document.getElementById('fp_arr_irRate').value) || 0;
+    
+    // GET OPTIONS (MA, EHS, DR)
+    let maOpt = document.getElementById('fp_arr_maOpt').value; // YES or NO
+    let drOpt = document.getElementById('fp_arr_drOpt').value; // YES or NO (NEW)
+    let ehsVal = parseFloat(document.getElementById('fp_arr_ehsOpt').value) || 0; 
+
+    // Get Basics from RPS 2022
+    let basicEFP = parseFloat(document.getElementById(`edit_efp_2022`)?.value) || 0;
+    let basicNFP = parseFloat(document.getElementById(`edit_nfp_2022`)?.value) || 0;
+
+    if(!dod || !uptoDate || basicEFP === 0) return alert("Please check DOD, Arrears Upto Date and Fixation History.");
+
+    // Dates
+    let start = new Date(dod); start.setDate(start.getDate() + 1);
+    let end = new Date(uptoDate);
+    let efpEnd = new Date(efpEndDate);
+    let dob = benDob ? new Date(benDob) : null;
+
+    document.getElementById('fp_arr_startDate').value = start.toISOString().split('T')[0];
+
+    FP_ROWS_DATA = [];
+    let curr = new Date(start);
+
+    // LOOP MONTHS
+    while (curr <= end) {
+        let mEnd = new Date(curr.getFullYear(), curr.getMonth() + 1, 0);
+        let pEnd = (mEnd < end) ? mEnd : end;
+
+        // EFP/NFP Logic
+        let periodType = "NFP";
+        let fullBasic = basicNFP;
+        
+        if (curr <= efpEnd) {
+            periodType = "EFP";
+            fullBasic = basicEFP;
+            if (pEnd > efpEnd) { pEnd = new Date(efpEnd); }
+        }
+
+        // Days Calc
+        let daysInMonth = new Date(curr.getFullYear(), curr.getMonth() + 1, 0).getDate();
+        let pDays = (pEnd.getDate() - curr.getDate()) + 1;
+
+        // 1. Basic (Pro-rata)
+        let payBasic = Math.round((fullBasic / daysInMonth) * pDays);
+
+        // 2. AQ (Full Month Rule)
+        let aqAmt = 0;
+        if(dob) {
+            let ageDiff = new Date(curr - dob);
+            let age = Math.abs(ageDiff.getUTCFullYear() - 1970);
+            let aqPerc = 0;
+            if(age >= 100) aqPerc = 50;
+            else if(age >= 95) aqPerc = 35;
+            else if(age >= 90) aqPerc = 30;
+            else if(age >= 85) aqPerc = 25;
+            else if(age >= 80) aqPerc = 20;
+            else if(age >= 75) aqPerc = 12;
+            else if(age >= 70) aqPerc = 7;
+            if(aqPerc > 0) aqAmt = Math.round((fullBasic * aqPerc) / 100);
+        }
+
+        // 3. Medical (MA)
+        let payMed = 0;
+        if(maOpt === 'YES') {
+            payMed = Math.round((500 / daysInMonth) * pDays);
+        }
+
+        // 4. EHS (Full Month Fixed)
+        let payEHS = ehsVal;
+
+        // NEW: Check DR Option. If NO, set rate to 0 for this row temporarily.
+        let rowDRRate = (drOpt === 'YES') ? defDA : 0;
+        
+        FP_ROWS_DATA.push({
+            id: FP_ROWS_DATA.length,
+            from: fmtDate(curr),
+            to: fmtDate(pEnd),
+            days: pDays,
+            type: periodType,
+            basic: payBasic,
+            aq: aqAmt,
+            med: payMed,
+            ehs: payEHS,
+            drRate: rowDRRate, // Use the checked rate
+            irRate: defIR
+        });
+
+        curr = new Date(pEnd);
+        curr.setDate(curr.getDate() + 1);
+    }
+
+    renderArrearsTable();
+}
+
+// 2. RENDER TABLE & CALCULATE ROW TOTALS
+function renderArrearsTable() {
+    let tbody = document.getElementById('fp_arrears_tbody');
+    let html = "";
+    let grandTotal = 0;
+
+    FP_ROWS_DATA.forEach((r, index) => {
+        // DR Calculation: (ProRataBasic + FullAQ) * DR%
+        // Note: User said "AQ meeda DR". Since AQ is Full, DR on AQ is Full. Basic is Pro-rata, DR on Basic is Pro-rata.
+        // Base = r.basic + r.aq
+        let drBase = r.basic + r.aq;
+        let drAmt = Math.round(drBase * (r.drRate / 100));
+
+        // IR Calculation: ProRataBasic * IR% (User said IR is pro-rata on Basic)
+        let irAmt = Math.round(r.basic * (r.irRate / 100));
+
+        // Gross
+        let gross = r.basic + r.aq + drAmt + irAmt + r.med;
+        
+        // Net
+        let net = gross - r.ehs;
+        grandTotal += net;
+
+        // Update Row Data for Export
+        r.drAmt = drAmt;
+        r.irAmt = irAmt;
+        r.net = net;
+
+        // Build HTML
+        html += `<tr>
+            <td class="border p-1 text-[10px] whitespace-nowrap">${r.from}<br>to ${r.to}</td>
+            <td class="border p-1">${r.days}</td>
+            <td class="border p-1 bg-green-50">${r.basic}</td>
+            <td class="border p-1 bg-purple-50">${r.aq}</td>
+            
+            <td class="border p-0">
+                <input type="number" step="0.01" class="w-full h-full text-center text-blue-700 font-bold focus:bg-blue-100 outline-none" 
+                value="${r.drRate}" onchange="updateArrearRow(${index}, 'dr', this.value)">
+            </td>
+            <td class="border p-1 bg-blue-50 font-bold text-gray-600">${drAmt}</td>
+            
+            <td class="border p-0">
+                <input type="number" step="0.01" class="w-full h-full text-center text-orange-700 font-bold focus:bg-orange-100 outline-none" 
+                value="${r.irRate}" onchange="updateArrearRow(${index}, 'ir', this.value)">
+            </td>
+            <td class="border p-1 bg-orange-50 text-gray-600">${irAmt}</td>
+            
+            <td class="border p-1">${r.med}</td>
+            <td class="border p-1 font-black bg-gray-100">${gross}</td>
+            <td class="border p-1 text-red-500">-${r.ehs}</td>
+            <td class="border p-1 font-bold bg-indigo-100 text-indigo-900">${net}</td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+    document.getElementById('fp_total_arrears_disp').innerText = "Rs. " + grandTotal.toLocaleString();
+    document.getElementById('fp_arrears_result_area').classList.remove('hidden');
+}
+
+// 3. HANDLE LIVE EDIT
+function updateArrearRow(index, field, val) {
+    let numericVal = parseFloat(val) || 0;
+    if(field === 'dr') FP_ROWS_DATA[index].drRate = numericVal;
+    if(field === 'ir') FP_ROWS_DATA[index].irRate = numericVal;
+    
+    // Re-render table to update all calculations
+    renderArrearsTable();
+}
+
+// --- UPDATE THIS FUNCTION IN YOUR CODE ---
+
+function generateFinalProceedingsV12() {
+    let spName = document.getElementById('fp_spName').value;
+    let ppo = document.getElementById('fp_ppo').value;
+    let benName = document.getElementById('fp_benName').value;
+    
+    // Validation
+    if(!SETTLEMENT_DATA) return alert("Please Calculate Tab 1 (LTA/Excess) first.");
+    if(FP_ROWS_DATA.length === 0) return alert("Please Calculate Tab 2 (Arrears) first.");
+
+    // Calculate Totals
+    let totalArrears = FP_ROWS_DATA.reduce((sum, r) => sum + r.net, 0);
+    let uptoDate = FP_ROWS_DATA[FP_ROWS_DATA.length-1].to;
+
+    // --- 1. ARREARS TABLE SECTION ---
+    let arrRows = "";
+    FP_ROWS_DATA.forEach(r => {
+        arrRows += `<tr>
+            <td style="border:1px solid #999; padding:5px;">${r.from} to ${r.to}</td>
+            <td style="border:1px solid #999; padding:5px;">${r.basic}</td>
+            <td style="border:1px solid #999; padding:5px;">${r.aq}</td>
+            <td style="border:1px solid #999; padding:5px;">${r.drAmt} <br><span style="font-size:9px; color:#555;">(${r.drRate}%)</span></td>
+            <td style="border:1px solid #999; padding:5px;">${r.irAmt} <br><span style="font-size:9px; color:#555;">(${r.irRate}%)</span></td>
+            <td style="border:1px solid #999; padding:5px;">${r.med}</td>
+            <td style="border:1px solid #999; padding:5px;">-${r.ehs}</td>
+            <td style="border:1px solid #999; padding:5px; font-weight:bold;">${r.net}</td>
+        </tr>`;
+    });
+
+    let arrearsSection = `
+        <div style="margin-bottom: 20px;">
+            <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">I. Statement of Family Pension Arrears (Up to ${uptoDate}):</div>
+            <table style="width:100%; border-collapse:collapse; text-align:center; font-size:11px; border:1px solid #000; margin-top:5px;">
+                <tr style="background:#f0f0f0; font-weight:bold;">
+                    <th style="border:1px solid #999; padding:5px;">Period</th>
+                    <th style="border:1px solid #999; padding:5px;">Basic</th>
+                    <th style="border:1px solid #999; padding:5px;">AQ</th>
+                    <th style="border:1px solid #999; padding:5px;">DR</th>
+                    <th style="border:1px solid #999; padding:5px;">IR</th>
+                    <th style="border:1px solid #999; padding:5px;">Med</th>
+                    <th style="border:1px solid #999; padding:5px;">EHS</th>
+                    <th style="border:1px solid #999; padding:5px;">Net</th>
+                </tr>
+                ${arrRows}
+                <tr style="font-weight:bold; background:#eef;">
+                    <td colspan="7" style="text-align:right; padding:6px; border:1px solid #999;">Total FP Arrears (A):</td>
+                    <td style="border:1px solid #999; padding:6px;">${totalArrears}</td>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    // --- 2. LTA SECTION ---
+    let ltaSection = "";
+    let ltaAmount = 0;
+    if(SETTLEMENT_DATA.netLTA > 0) {
+        ltaAmount = SETTLEMENT_DATA.netLTA;
+        ltaSection = `
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">II. Lifetime Arrears (LTA) of Late Pensioner:</div>
+                <p style="font-size:12px; margin:5px 0 0 15px;">
+                    LTA Calculated for <b>${SETTLEMENT_DATA.daysLived} days</b>.<br>
+                    <b>Total LTA Payable (B): Rs. ${ltaAmount}</b>
+                </p>
+            </div>
+        `;
+    }
+
+    // --- 3. EXCESS SECTION ---
+    let excessSection = "";
+    let excessAmount = 0;
+    if(SETTLEMENT_DATA.type === 'EXCESS') {
+        excessAmount = SETTLEMENT_DATA.netRec;
+        let eRows = "";
+        SETTLEMENT_DATA.excessRecs.forEach(r => {
+             eRows += `<tr><td style="border:1px solid #ccc; padding:4px;">${r.MONTH}/${r.YEAR}</td><td style="border:1px solid #ccc; padding:4px;">Rs. ${getVal(r).net}</td></tr>`;
+        });
+        excessSection = `
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight:bold; font-size:14px; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">III. Recovery of Excess Payment:</div>
+                <table style="width:60%; border-collapse:collapse; text-align:center; font-size:11px; border:1px solid #ccc; margin:5px 0 0 15px;">
+                    <tr style="background:#f0f0f0; font-weight:bold;"><th style="border:1px solid #ccc; padding:4px;">Month</th><th style="border:1px solid #ccc; padding:4px;">Amount Paid</th></tr>
+                    ${eRows}
+                </table>
+                <p style="font-size:12px; margin:5px 0 0 15px; color:#b91c1c;">
+                    <b>Total Recoverable Amount (C): Rs. ${excessAmount}</b>
+                </p>
+            </div>
+        `;
+    }
+
+    // --- 4. FINAL ABSTRACT (MATCHING SCREENSHOT 160) ---
+    let finalNet = (totalArrears + ltaAmount) - excessAmount;
+    
+    let abstractSection = `
+        <div style="border:2px solid #000; padding:0; margin-top:30px; background:#fff;">
+            <div style="text-align:center; padding:10px; border-bottom:1px solid #eee;">
+                <h4 style="margin:0; text-decoration:underline; font-weight:bold; text-transform:uppercase;">ABSTRACT OF SETTLEMENT</h4>
+            </div>
+            
+            <table style="width:100%; font-size:13px; line-height:2.0; padding:15px;">
+                <tr>
+                    <td width="70%">1. Total Family Pension Arrears (A)</td>
+                    <td style="text-align:right; font-weight:bold;">Rs. ${totalArrears}</td>
+                </tr>
+                <tr>
+                    <td>2. LTA Amount (B)</td>
+                    <td style="text-align:right; font-weight:bold;">(+) Rs. ${ltaAmount}</td>
+                </tr>
+                <tr>
+                    <td>3. Less: Excess Paid Recovery (C)</td>
+                    <td style="text-align:right; color:red; font-weight:bold;">(-) Rs. ${excessAmount}</td>
+                </tr>
+            </table>
+
+            <div style="background:#eee; padding:10px 15px; border-top:2px solid #000; border-bottom:2px solid #000;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:bold; font-size:14px;">NET PAYABLE AMOUNT</span>
+                    <span style="font-weight:bold; font-size:16px;">Rs. ${finalNet}</span>
+                </div>
+            </div>
+            
+            <p style="text-align:center; font-size:12px; font-style:italic; padding:10px; margin:0;">
+                (Rupees ${convertNumberToWords(finalNet)} Only)
+            </p>
+        </div>
+    `;
+
+    // --- BUILD FULL HTML ---
+    let html = `
+    <div style="font-family:Arial, sans-serif; padding:30px; color:#000; max-width:850px; margin:0 auto; line-height:1.4;">
+        
+        <center><h3 style="text-decoration:underline; margin-bottom:20px; text-transform:uppercase;">ANNEXURE: SETTLEMENT OF ACCOUNTS</h3></center>
+        
+        <div style="font-size:13px; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:10px;">
+            <b>Beneficiary Name:</b> <span style="text-transform:uppercase; font-size:14px;">${benName}</span><br>
+            <span style="color:#555; font-size:12px;">(Pensioner: Late ${spName}, PPO: ${ppo})</span>
+        </div>
+        
+        ${arrearsSection}
+        ${ltaSection}
+        ${excessSection}
+        ${abstractSection}
+        
+        <br><br><br><br>
+        <div style="text-align:right; font-weight:bold; font-size:14px;">
+            Sub Treasury Officer
+        </div>
+    </div>`;
+
+    // Output to Screen
+    let out = document.getElementById('fp_outputArea');
+    out.innerHTML = html;
+    out.classList.remove('hidden');
+    out.scrollIntoView({behavior:'smooth'});
+}
+
+// Ensure this helper exists or is kept
+function convertNumberToWords(amount) {
+    const num = parseInt(amount);
+    if(num == 0) return "Zero";
+    // (Existing Logic for words from your code...)
+    return numberToWords(num); // Assuming 'numberToWords' is the main function in your script
+}
+// Simple Number to Words (Optional Helper)
+function convertNumberToWords(amount) {
+    return amount + "/-"; // Placeholder if you don't have a library
+}    </script>
+<div id="excess-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all scale-100">
+        <div class="flex justify-center -mt-8">
+            <div class="bg-red-100 p-4 rounded-full border-4 border-white shadow-lg">
+                <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
+            </div>
+        </div>
+        
+        <div class="p-6 pt-2">
+            <h2 class="text-center text-2xl font-bold text-red-800 mb-1">Excess Payment Detected</h2>
+            <p class="text-center text-xs text-gray-500 font-bold uppercase tracking-wider mb-4">Action Required: Recover Amount</p>
+
+            <div class="mb-4 text-sm text-gray-700 text-center bg-red-50 p-2 rounded border border-red-100">
+                Pensioner expired on <b id="ex-deathdate" class="text-black"></b>.<br>
+                Payments made after death are listed below:
+            </div>
+
+            <div class="overflow-y-auto max-h-60 border border-gray-300 rounded-lg shadow-inner">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-gray-100 text-gray-600 font-bold uppercase sticky top-0">
+                        <tr>
+                            <th class="p-2 border-b">Month</th>
+                            <th class="p-2 border-b">Bill ID</th>
+                            <th class="p-2 border-b text-right">Paid</th>
+                            <th class="p-2 border-b text-right">Admissible</th>
+                            <th class="p-2 border-b text-right text-red-600">Excess</th>
+                        </tr>
+                    </thead>
+                    <tbody id="excess-table-body" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center bg-red-100 border border-red-200 rounded-lg p-3">
+                <div class="text-xs text-red-800 font-bold uppercase">Total Recoverable</div>
+                <div id="ex-recoverable" class="text-xl font-extrabold text-red-700">Rs. 0.00</div>
+            </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-b-xl flex justify-center border-t">
+            <button onclick="document.getElementById('excess-modal').classList.add('hidden')" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-8 rounded-lg shadow transition hover:scale-105">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
